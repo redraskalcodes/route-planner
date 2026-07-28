@@ -1,0 +1,7 @@
+flask>=3.0
+googlemaps>=4.10
+google-auth>=2.29
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.126
+python-docx>=1.1
+pyinstaller>=6.6

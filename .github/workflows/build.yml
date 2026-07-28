@@ -1,0 +1,63 @@
+name: Build Route Planner
+
+on:
+  workflow_dispatch:   # run manually from GitHub with one click
+
+jobs:
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build Mac app
+        run: pyinstaller route_planner.spec
+
+      - name: Zip app bundle
+        run: |
+          cd dist
+          zip -r "Route Planner Mac.zip" "Route Planner.app"
+
+      - name: Upload Mac build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Route-Planner-Mac
+          path: dist/Route Planner Mac.zip
+          retention-days: 30
+
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build Windows exe
+        run: pyinstaller route_planner.spec
+
+      - name: Zip exe folder
+        run: |
+          Compress-Archive -Path "dist\Route Planner" -DestinationPath "dist\Route Planner Windows.zip"
+        shell: powershell
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Route-Planner-Windows
+          path: dist\Route Planner Windows.zip
+          retention-days: 30

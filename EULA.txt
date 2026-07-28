@@ -1,0 +1,57 @@
+END USER LICENSE AGREEMENT (EULA)
+Route Planner — by Yee Ang
+Last updated: July 2026
+
+PLEASE READ THIS AGREEMENT CAREFULLY BEFORE USING THIS SOFTWARE.
+BY CLICKING "I ACCEPT" OR BY USING THE SOFTWARE, YOU AGREE TO BE BOUND
+BY THE TERMS OF THIS AGREEMENT. IF YOU DO NOT AGREE, DO NOT USE THE SOFTWARE.
+
+─────────────────────────────────────────────────────────────────────────────
+
+1. GRANT OF LICENSE
+   The developer ("Licensor") grants you ("User") a personal, non-exclusive,
+   non-transferable, limited licence to install and use Route Planner solely
+   for your own internal business operations.
+
+2. RESTRICTIONS
+   You may NOT:
+   a) Copy, distribute, share, sublicense, sell, rent, or transfer the
+      software or any copy of it to any third party.
+   b) Reverse engineer, decompile, disassemble, or attempt to derive the
+      source code of the software.
+   c) Modify, adapt, or create derivative works based on the software.
+   d) Use the software to build a competing product or service.
+   e) Remove or alter any proprietary notices, labels, or marks on the software.
+
+3. OWNERSHIP
+   The software is licensed, not sold. The Licensor retains all intellectual
+   property rights in and to the software, including all copies made by you.
+
+4. BETA / FREE COPIES
+   This copy has been provided at no charge for evaluation purposes. The
+   Licensor may, at any time, require a paid licence for continued use. Prior
+   notice will be given before any free licence period ends.
+
+5. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED. THE LICENSOR DOES NOT WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE
+   OR THAT ROUTES GENERATED WILL BE ACCURATE OR OPTIMAL. YOU USE THE SOFTWARE
+   AT YOUR OWN RISK.
+
+6. LIMITATION OF LIABILITY
+   TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR SHALL NOT BE LIABLE
+   FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING
+   FROM USE OF THE SOFTWARE, INCLUDING BUT NOT LIMITED TO LOSS OF REVENUE,
+   DATA, OR BUSINESS OPPORTUNITY.
+
+7. TERMINATION
+   This licence is effective until terminated. It terminates automatically
+   if you breach any term of this agreement. Upon termination you must delete
+   all copies of the software in your possession.
+
+8. GOVERNING LAW
+   This agreement is governed by the laws of Singapore.
+
+─────────────────────────────────────────────────────────────────────────────
+
+For questions, contact: yee.ang01@gmail.com

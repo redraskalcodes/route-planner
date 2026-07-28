@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup — Route Planner</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            color: #1a1a2e;
+        }
+        .header {
+            background: #1a73e8;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .header a {
+            margin-left: auto;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .header a:hover { color: white; }
+
+        .container { max-width: 680px; margin: 36px auto; padding: 0 16px; }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .page-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a73e8;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e8f0fe;
+        }
+
+        .field { margin-bottom: 20px; }
+        .field:last-child { margin-bottom: 0; }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px 13px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1a1a2e;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        input[type="text"]:focus,
+        input[type="password"]:focus { border-color: #1a73e8; }
+
+        .file-upload {
+            position: relative;
+        }
+        .file-upload input[type="file"] {
+            width: 100%;
+            padding: 9px 13px;
+            border: 1.5px dashed #ccc;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #555;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .file-upload input[type="file"]:hover { border-color: #1a73e8; }
+
+        .creds-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .creds-status.ok { background: #dcfce7; color: #15803d; }
+        .creds-status.missing { background: #fef2f2; color: #dc2626; }
+
+        .api-key-row {
+            display: flex;
+            gap: 8px;
+        }
+        .api-key-row input { flex: 1; }
+        .toggle-btn {
+            background: #f3f4f6;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+            transition: background 0.2s;
+        }
+        .toggle-btn:hover { background: #e5e7eb; }
+
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #dc2626;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .btn-save {
+            width: 100%;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-save:hover { background: #1557b0; }
+
+        .info-box {
+            background: #e8f0fe;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-size: 13px;
+            color: #1a56a8;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .info-box a { color: #1a73e8; }
+        code {
+            background: #f0f2f5;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <span>🗺</span>
+    <h1>Route Planner</h1>
+    {% if config %}
+    <a href="/">← Back to planner</a>
+    {% endif %}
+</div>
+
+<div class="container">
+    <div class="page-title">Setup</div>
+    <div class="page-subtitle">Configure your Route Planner — takes about 5 minutes.</div>
+
+    {% if error %}
+    <div class="error-box">⚠ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <!-- Section 1: Location -->
+        <div class="card">
+            <div class="section-title">1 · Your depot / office</div>
+            <div class="field">
+                <label for="start_address">Start & end address</label>
+                <input type="text" id="start_address" name="start_address"
+                       placeholder="e.g. 2 Jurong East Street 21, Singapore 609601"
+                       value="{{ config.get('start_address', '') }}">
+                <div class="hint">Your driver starts and ends here every day. Use a full address so Google Maps can find it precisely.</div>
+            </div>
+            <div class="field">
+                <label for="output_dir">Save route docs to</label>
+                <input type="text" id="output_dir" name="output_dir"
+                       placeholder="e.g. /Users/yourname/Desktop/Routes"
+                       value="{{ config.get('output_dir', '') }}">
+                <div class="hint">Full folder path where Word documents will be saved. The folder will be created if it doesn't exist.</div>
+            </div>
+            <div class="field">
+                <label for="service_time_min">Time buffer per stop (minutes)</label>
+                <input type="number" id="service_time_min" name="service_time_min"
+                       min="0" max="120" step="1"
+                       placeholder="e.g. 15"
+                       value="{{ config.get('service_time_min', 15) }}"
+                       style="width: 120px;">
+                <div class="hint">How long your driver spends at each stop — walking up, handling the job, returning to the van. This is added after each visit when calculating the next arrival time.</div>
+            </div>
+        </div>
+
+        <!-- Section 2: Google Calendar -->
+        <div class="card">
+            <div class="section-title">2 · Google Calendar</div>
+
+            <div class="info-box">
+                To connect your Google Calendar, you need a <strong>credentials file</strong> from Google Cloud Console.<br><br>
+                <strong>How to get it (one-time):</strong><br>
+                1. Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a><br>
+                2. Create a project → enable <strong>Google Calendar API</strong><br>
+                3. Go to <strong>APIs &amp; Services → Credentials → Create OAuth client ID</strong><br>
+                4. Choose <strong>Desktop app</strong> → download the JSON file<br>
+                5. Upload that file below
+            </div>
+
+            <div class="field">
+                <label>Credentials file (credentials.json)</label>
+                {% if has_credentials %}
+                <div class="creds-status ok">✓ Credentials file uploaded</div>
+                {% else %}
+                <div class="creds-status missing">✗ No credentials file yet</div>
+                {% endif %}
+                <div class="file-upload">
+                    <input type="file" name="credentials_file" accept=".json">
+                </div>
+                <div class="hint">Upload a new file to replace the existing one. Leave blank to keep the current one.</div>
+            </div>
+
+            <div class="field">
+                <label for="job_keyword">Calendar event keyword</label>
+                <input type="text" id="job_keyword" name="job_keyword"
+                       placeholder="e.g. luggage"
+                       value="{{ config.get('job_keyword', '') }}">
+                <div class="hint">
+                    The word that appears in the <strong>title</strong> of your delivery/pickup calendar events.<br>
+                    e.g. if your events are titled <code>Luggage delivery x1</code>, enter <code>luggage</code>.
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="delivery_keyword">Delivery keyword</label>
+                <input type="text" id="delivery_keyword" name="delivery_keyword"
+                       placeholder="e.g. deliver"
+                       value="{{ config.get('delivery_keyword', '') }}">
+                <div class="hint">
+                    The word that distinguishes a <strong>delivery</strong> from a <strong>pickup</strong> in the event title.<br>
+                    e.g. <code>deliver</code> — events without this word are treated as pickups.
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Google Maps -->
+        <div class="card">
+            <div class="section-title">3 · Google Maps API key</div>
+
+            <div class="info-box">
+                The app uses Google Maps to calculate real driving times between stops.<br><br>
+                <strong>How to get a free API key:</strong><br>
+                1. In Google Cloud Console → <strong>APIs &amp; Services → Library</strong><br>
+                2. Enable <strong>Distance Matrix API</strong><br>
+                3. Go to <strong>Credentials → Create API key</strong><br>
+                4. Copy the key and paste it below<br><br>
+                Google gives $200 free credit/month — more than enough for daily route generation.
+            </div>
+
+            <div class="field">
+                <label for="maps_api_key">API key</label>
+                <div class="api-key-row">
+                    <input type="password" id="maps_api_key" name="maps_api_key"
+                           placeholder="AIza..."
+                           value="{{ config.get('maps_api_key', '') }}">
+                    <button type="button" class="toggle-btn" onclick="toggleKey()">👁</button>
+                </div>
+                <div class="hint">Your API key is stored only on your device and never sent anywhere except Google Maps.</div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-save">Save &amp; continue →</button>
+    </form>
+</div>
+
+<script>
+function toggleKey() {
+    const f = document.getElementById('maps_api_key');
+    f.type = f.type === 'password' ? 'text' : 'password';
+}
+</script>
+</body>
+</html>

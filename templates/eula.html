@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licence Agreement — Route Planner</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            color: #1a1a2e;
+        }
+        .header {
+            background: #1a73e8;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+
+        .container { max-width: 680px; margin: 36px auto; padding: 0 16px 48px; }
+
+        .page-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .page-subtitle { font-size: 14px; color: #666; margin-bottom: 24px; }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .eula-box {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            height: 340px;
+            overflow-y: scroll;
+            font-size: 13px;
+            line-height: 1.7;
+            color: #333;
+            white-space: pre-wrap;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 24px;
+            cursor: pointer;
+        }
+        .checkbox-row input[type="checkbox"] {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: #1a73e8;
+        }
+        .checkbox-row label {
+            font-size: 14px;
+            color: #374151;
+            cursor: pointer;
+            line-height: 1.5;
+        }
+
+        .btn-row { display: flex; gap: 12px; }
+
+        .btn-accept {
+            flex: 1;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-accept:hover:not(:disabled) { background: #1557b0; }
+        .btn-accept:disabled { background: #aaa; cursor: not-allowed; }
+
+        .btn-decline {
+            background: white;
+            color: #666;
+            border: 1.5px solid #ddd;
+            padding: 13px 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-decline:hover { background: #f3f4f6; }
+
+        .decline-msg {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 14px 16px;
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <span>🗺</span>
+    <h1>Route Planner</h1>
+</div>
+
+<div class="container">
+    <div class="page-title">Licence Agreement</div>
+    <div class="page-subtitle">Please read and accept the terms before using Route Planner.</div>
+
+    <div class="card">
+        <div class="eula-box" id="eulaBox">{{ eula_text }}</div>
+
+        <div class="checkbox-row">
+            <input type="checkbox" id="agreeCheck" onchange="updateBtn()">
+            <label for="agreeCheck" onclick="event.preventDefault(); document.getElementById('agreeCheck').checked = !document.getElementById('agreeCheck').checked; updateBtn();">
+                I have read and agree to the End User Licence Agreement above.
+            </label>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn-accept" id="acceptBtn" disabled onclick="accept()">
+                Accept &amp; Continue →
+            </button>
+            <button class="btn-decline" onclick="decline()">Decline</button>
+        </div>
+
+        <div class="decline-msg" id="declineMsg">
+            You must accept the licence agreement to use Route Planner.
+            You may close this window.
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCheck() {
+    const cb = document.getElementById('agreeCheck');
+    cb.checked = !cb.checked;
+    updateBtn();
+}
+function updateBtn() {
+    document.getElementById('acceptBtn').disabled =
+        !document.getElementById('agreeCheck').checked;
+}
+function accept() {
+    fetch('/eula/accept', { method: 'POST' })
+        .then(() => window.location.href = '/');
+}
+function decline() {
+    document.getElementById('declineMsg').style.display = 'block';
+    document.getElementById('acceptBtn').disabled = true;
+    document.getElementById('agreeCheck').checked = false;
+}
+</script>
+</body>
+</html>

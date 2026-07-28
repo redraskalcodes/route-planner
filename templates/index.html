@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Planner</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            color: #1a1a2e;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: #1a73e8;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 20px; font-weight: 600; flex: 1; }
+        .header a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .header a:hover { background: rgba(255,255,255,0.15); color: white; }
+
+        /* ── Container ── */
+        .container { max-width: 780px; margin: 32px auto; padding: 0 16px; }
+
+        /* ── Card ── */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .card-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
+        }
+
+        /* ── Date row ── */
+        .date-row { display: flex; gap: 12px; align-items: center; }
+        input[type="date"] {
+            flex: 1;
+            padding: 11px 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            color: #1a1a2e;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="date"]:focus { border-color: #1a73e8; }
+
+        .btn-generate {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+        .btn-generate:hover { background: #1557b0; }
+        .btn-generate:disabled { background: #aaa; cursor: not-allowed; }
+
+        /* ── Error ── */
+        .error-box {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: 14px;
+        }
+        .reconnect-box {
+            display: none;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-top: 14px;
+        }
+        .reconnect-box p { color: #92400e; font-size: 14px; margin-bottom: 10px; }
+        .btn-reconnect {
+            background: #ea580c;
+            color: white;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-reconnect:hover { background: #c2410c; }
+
+        /* ── Loading ── */
+        .loading { display: none; text-align: center; padding: 28px 0; }
+        .spinner {
+            width: 38px; height: 38px;
+            border: 3px solid #e8edf5;
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            margin: 0 auto 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading p { color: #666; font-size: 14px; }
+        .loading p.sub { font-size: 12px; color: #aaa; margin-top: 5px; }
+
+        /* ── Results ── */
+        .results { display: none; }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+        .results-title h2 { font-size: 18px; font-weight: 700; }
+        .results-title p { font-size: 13px; color: #777; margin-top: 4px; }
+
+        .btn-download {
+            background: #16a34a;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .btn-download:hover { background: #15803d; }
+
+        /* ── Stops ── */
+        .stop {
+            display: grid;
+            grid-template-columns: 36px 1fr auto;
+            gap: 10px;
+            align-items: start;
+            padding: 13px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .stop:last-child { border-bottom: none; }
+
+        .stop-num {
+            width: 30px; height: 30px;
+            background: #e8f0fe;
+            color: #1a73e8;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .stop-num.is-office {
+            background: #f3f4f6;
+            font-size: 16px;
+        }
+
+        .stop-address {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .stop-address.is-office { font-weight: 700; color: #374151; }
+
+        .stop-meta {
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            background: #f3f4f6;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .stop-right { text-align: right; }
+        .stop-eta {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a73e8;
+            white-space: nowrap;
+        }
+        .stop-eta.is-office { color: #374151; }
+        .badge-del {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 10px;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+
+        /* ── Saved notice ── */
+        .saved-notice {
+            display: none;
+            font-size: 12px;
+            color: #16a34a;
+            margin-top: 10px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <span>🗺</span>
+    <h1>Route Planner</h1>
+    <a href="/setup">⚙ Settings</a>
+</div>
+
+<div class="container">
+
+    <!-- Date picker -->
+    <div class="card">
+        <div class="card-label">Select a date</div>
+        <div class="date-row">
+            <input type="date" id="dateInput" value="{{ today }}">
+            <button class="btn-generate" id="generateBtn" onclick="generate()">Generate Route</button>
+        </div>
+        <div class="error-box" id="errorBox"></div>
+        <div class="reconnect-box" id="reconnectBox">
+            <p>⚠ Your Google Calendar session has expired. Click below to reconnect — a browser window will open briefly for sign-in.</p>
+            <a class="btn-reconnect" href="/reconnect">Reconnect Google Calendar →</a>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="card loading" id="loading">
+        <div class="spinner"></div>
+        <p>Fetching calendar &amp; optimising route…</p>
+        <p class="sub">Usually takes 10–20 seconds</p>
+    </div>
+
+    <!-- Results -->
+    <div class="card results" id="results">
+        <div class="results-header">
+            <div class="results-title">
+                <h2 id="resultsDate"></h2>
+                <p id="resultsSubtitle"></p>
+            </div>
+            <a class="btn-download" id="downloadBtn" href="#">⬇ Download Word Doc</a>
+        </div>
+        <div id="stopsList"></div>
+        <div class="saved-notice" id="savedNotice"></div>
+    </div>
+
+</div>
+
+<script>
+async function generate() {
+    const dateVal = document.getElementById('dateInput').value;
+    if (!dateVal) { alert('Please select a date.'); return; }
+
+    document.getElementById('errorBox').style.display = 'none';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('generateBtn').disabled = true;
+
+    try {
+        const resp = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: dateVal }),
+        });
+        const data = await resp.json();
+        document.getElementById('loading').style.display = 'none';
+
+        if (!resp.ok || data.error) {
+            if (data.auth_expired) {
+                document.getElementById('reconnectBox').style.display = 'block';
+            } else {
+                const box = document.getElementById('errorBox');
+                box.textContent = data.error || 'Something went wrong. Please try again.';
+                box.style.display = 'block';
+            }
+        } else {
+            showResults(data);
+        }
+    } catch (e) {
+        document.getElementById('loading').style.display = 'none';
+        const box = document.getElementById('errorBox');
+        box.textContent = 'Connection error. Please make sure the app is still running.';
+        box.style.display = 'block';
+    } finally {
+        document.getElementById('generateBtn').disabled = false;
+    }
+}
+
+function showResults(data) {
+    document.getElementById('resultsDate').textContent = data.date;
+    document.getElementById('resultsSubtitle').textContent =
+        `${data.total_jobs} stops · ${data.delivery_count} deliveries · ${data.pickup_count} pickups`;
+    document.getElementById('downloadBtn').href = `/download/${encodeURIComponent(data.filename)}`;
+
+    const notice = document.getElementById('savedNotice');
+    notice.textContent = `✓ Word doc saved to ${data.output_dir}`;
+    notice.style.display = 'block';
+
+    const list = document.getElementById('stopsList');
+    list.innerHTML = '';
+
+    data.stops.forEach((stop, i) => {
+        const isOffice = stop.type === 'office';
+        const isDelivery = stop.type === 'delivery';
+
+        const div = document.createElement('div');
+        div.className = 'stop';
+        div.innerHTML = `
+            <div class="stop-num ${isOffice ? 'is-office' : ''}">${isOffice ? '🏢' : (i + 1)}</div>
+            <div>
+                <div class="stop-address ${isOffice ? 'is-office' : ''}">${stop.address}</div>
+                <div class="stop-meta">
+                    ${!isOffice ? `<span class="tag">📅 ${stop.slot}</span>` : ''}
+                    <span class="tag">🚗 ${stop.travel_min} min</span>
+                </div>
+            </div>
+            <div class="stop-right">
+                <div class="stop-eta ${isOffice ? 'is-office' : ''}">${stop.eta}</div>
+                ${isDelivery ? `<div class="badge-del">Del ${stop.qty} bag${stop.qty > 1 ? 's' : ''}</div>` : ''}
+            </div>
+        `;
+        list.appendChild(div);
+    });
+
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('dateInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generate();
+});
+</script>
+</body>
+</html>

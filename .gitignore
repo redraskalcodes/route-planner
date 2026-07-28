@@ -1,0 +1,16 @@
+# Private — never commit these
+LICENSE_KEYS_MASTER.txt
+credentials.json
+token.pickle
+config.json
+
+# Build output
+build/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+*.spec.bak
+
+# Mac
+.DS_Store
