@@ -53,6 +53,12 @@ LICENSE_PATH     = DATA_DIR / "license.txt"
 RESOURCE_DIR     = get_resource_dir()
 EULA_TEXT_PATH   = RESOURCE_DIR / "EULA.txt"
 
+# Auto-copy bundled credentials.json to user data dir on first run
+_bundled_creds = RESOURCE_DIR / "credentials.json"
+if not CREDENTIALS_PATH.exists() and _bundled_creds.exists():
+    import shutil
+    shutil.copy(_bundled_creds, CREDENTIALS_PATH)
+
 app = Flask(__name__, template_folder=str(RESOURCE_DIR / "templates"))
 
 
@@ -173,8 +179,6 @@ def setup():
         required = {k: v for k, v in new_cfg.items() if k != "service_time_min"}
         if not all(required.values()):
             error = "All fields are required."
-        elif not CREDENTIALS_PATH.exists():
-            error = "Please upload your Google Calendar credentials file."
         else:
             save_config(new_cfg)
             return redirect(url_for("index"))

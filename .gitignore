@@ -1,6 +1,5 @@
 # Private — never commit these
 LICENSE_KEYS_MASTER.txt
-credentials.json
 token.pickle
 config.json
 

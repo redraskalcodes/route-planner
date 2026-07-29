@@ -15,6 +15,7 @@ a = Analysis(
         ('templates', 'templates'),   # Flask HTML templates
         ('EULA.txt', '.'),            # Licence agreement
         ('license_keys.py', '.'),     # Embedded key hashes
+        ('credentials.json', '.'),    # Bundled Google OAuth credentials
     ],
     hiddenimports=[
         'googleapiclient',

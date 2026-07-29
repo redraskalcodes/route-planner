@@ -232,29 +232,6 @@
         <div class="card">
             <div class="section-title">2 · Google Calendar</div>
 
-            <div class="info-box">
-                To connect your Google Calendar, you need a <strong>credentials file</strong> from Google Cloud Console.<br><br>
-                <strong>How to get it (one-time):</strong><br>
-                1. Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a><br>
-                2. Create a project → enable <strong>Google Calendar API</strong><br>
-                3. Go to <strong>APIs &amp; Services → Credentials → Create OAuth client ID</strong><br>
-                4. Choose <strong>Desktop app</strong> → download the JSON file<br>
-                5. Upload that file below
-            </div>
-
-            <div class="field">
-                <label>Credentials file (credentials.json)</label>
-                {% if has_credentials %}
-                <div class="creds-status ok">✓ Credentials file uploaded</div>
-                {% else %}
-                <div class="creds-status missing">✗ No credentials file yet</div>
-                {% endif %}
-                <div class="file-upload">
-                    <input type="file" name="credentials_file" accept=".json">
-                </div>
-                <div class="hint">Upload a new file to replace the existing one. Leave blank to keep the current one.</div>
-            </div>
-
             <div class="field">
                 <label for="job_keyword">Calendar event keyword</label>
                 <input type="text" id="job_keyword" name="job_keyword"
