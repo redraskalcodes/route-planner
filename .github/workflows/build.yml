@@ -18,6 +18,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt pyinstaller
 
+      - name: Inject credentials
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+
       - name: Build Mac app
         run: pyinstaller route_planner.spec
 
@@ -46,6 +49,10 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt pyinstaller
+
+      - name: Inject credentials
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+        shell: bash
 
       - name: Build Windows exe
         run: pyinstaller route_planner.spec
