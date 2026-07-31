@@ -163,6 +163,29 @@
         }
         .btn-download:hover { background: #15803d; }
 
+        .btn-whatsapp {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .btn-whatsapp:hover { background: #1da851; }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         /* ── Stops ── */
         .stop {
             display: grid;
@@ -278,7 +301,10 @@
                 <h2 id="resultsDate"></h2>
                 <p id="resultsSubtitle"></p>
             </div>
-            <a class="btn-download" id="downloadBtn" href="#">⬇ Download PDF</a>
+            <div class="action-buttons">
+                <a class="btn-download" id="downloadBtn" href="#">⬇ Download PDF</a>
+                <a class="btn-whatsapp" id="whatsappBtn" href="#" target="_blank">📱 Share via WhatsApp</a>
+            </div>
         </div>
         <div id="stopsList"></div>
         <div class="saved-notice" id="savedNotice"></div>
@@ -326,11 +352,37 @@ async function generate() {
     }
 }
 
+function buildWhatsAppText(data) {
+    let msg = `Route Plan — ${data.date}\n`;
+    msg += `${data.total_jobs} stops · ${data.delivery_count} deliveries · ${data.pickup_count} pickups\n\n`;
+    let stopNum = 1;
+    data.stops.forEach(stop => {
+        if (stop.type === 'office') {
+            msg += `🏢 Return to office\n`;
+            msg += `${stop.address}\n`;
+            msg += `Arrive ${stop.eta} · ${stop.travel_min} min drive\n`;
+        } else {
+            msg += `Stop ${stopNum} · ${stop.address}\n`;
+            msg += `Arrive ${stop.eta} · ${stop.travel_min} min drive\n`;
+            msg += `Booked ${stop.slot}\n`;
+            if (stop.type === 'delivery') {
+                msg += `Del ${stop.qty} bag${stop.qty > 1 ? 's' : ''}\n`;
+            }
+            stopNum++;
+        }
+        msg += '\n';
+    });
+    return msg.trim();
+}
+
 function showResults(data) {
     document.getElementById('resultsDate').textContent = data.date;
     document.getElementById('resultsSubtitle').textContent =
         `${data.total_jobs} stops · ${data.delivery_count} deliveries · ${data.pickup_count} pickups`;
     document.getElementById('downloadBtn').href = `/download/${encodeURIComponent(data.filename)}`;
+
+    const waText = buildWhatsAppText(data);
+    document.getElementById('whatsappBtn').href = `https://wa.me/?text=${encodeURIComponent(waText)}`;
 
     const notice = document.getElementById('savedNotice');
     notice.textContent = `✓ Word doc saved to ${data.output_dir}`;
