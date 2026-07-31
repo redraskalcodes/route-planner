@@ -1,6 +1,6 @@
 """
 Route engine — self-contained, no Excel dependency.
-All inputs come from Google Calendar; outputs are Word docs.
+All inputs come from Google Calendar; outputs are PDF files.
 """
 
 import pickle
@@ -9,9 +9,12 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import googlemaps
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt, RGBColor
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -258,44 +261,61 @@ def format_time(dt: datetime) -> str:
 
 
 def generate_route_doc(target_date: date, ordered_jobs: list[dict], output_dir: Path) -> Path:
-    doc = Document()
-    style = doc.styles["Normal"]
-    style.font.name = "Arial"
-    style.font.size = Pt(11)
-
     day_str = target_date.strftime("%A, ") + str(int(target_date.strftime("%d"))) + target_date.strftime(" %B %Y")
-    heading = doc.add_paragraph()
-    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = heading.add_run(f"Route Plan — {day_str}")
-    run.bold = True
-    run.font.size = Pt(13)
-    doc.add_paragraph()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    out_path = output_dir / f"{target_date.strftime('%d-%m-%y')} Route Plan.pdf"
 
-    for job in ordered_jobs:
+    doc = SimpleDocTemplate(
+        str(out_path),
+        pagesize=A4,
+        leftMargin=20*mm, rightMargin=20*mm,
+        topMargin=20*mm, bottomMargin=20*mm,
+    )
+
+    BLUE  = colors.HexColor("#1a73e8")
+    DARK  = colors.HexColor("#1C1E26")
+    GREY  = colors.HexColor("#5A6070")
+    GREEN = colors.HexColor("#15803D")
+
+    title_style = ParagraphStyle("title", fontSize=15, textColor=BLUE,
+                                 alignment=TA_CENTER, fontName="Helvetica-Bold",
+                                 spaceAfter=4)
+    sub_style   = ParagraphStyle("sub", fontSize=9, textColor=GREY,
+                                 alignment=TA_CENTER, spaceAfter=12)
+    addr_style  = ParagraphStyle("addr", fontSize=11, textColor=DARK,
+                                 fontName="Helvetica-Bold", spaceBefore=8, spaceAfter=1)
+    meta_style  = ParagraphStyle("meta", fontSize=10, textColor=GREY, spaceAfter=2)
+    del_style   = ParagraphStyle("del", fontSize=10, textColor=GREEN, spaceAfter=6)
+    office_style= ParagraphStyle("office", fontSize=11, textColor=DARK,
+                                 fontName="Helvetica-Bold", spaceBefore=10, spaceAfter=2)
+    footer_style= ParagraphStyle("footer", fontSize=8, textColor=GREY,
+                                 alignment=TA_CENTER, spaceBefore=16)
+
+    story = []
+    story.append(Paragraph(f"Route Plan", title_style))
+    story.append(Paragraph(day_str, sub_style))
+    story.append(HRFlowable(width="100%", thickness=1, color=BLUE, spaceAfter=10))
+
+    for i, job in enumerate(ordered_jobs):
         travel = job.get("travel_min", "?")
-        eta = format_time(job["eta"]) if "eta" in job else "?"
+        eta    = format_time(job["eta"]) if "eta" in job else "?"
 
         if job["type"] == "office":
-            p = doc.add_paragraph(f"{job['address']}  ({travel} min)  {eta}")
-            p.runs[0].bold = True
-            continue
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#E2E5EA"), spaceBefore=8))
+            story.append(Paragraph(f"{job['address']}", office_style))
+            story.append(Paragraph(f"Arrive {eta}  ·  {travel} min drive", meta_style))
+        else:
+            slot_label = f"Booked {format_time(job['slot_start'])}–{format_time(job['slot_end'])}"
+            stop_num = i + 1
+            story.append(Paragraph(f"Stop {stop_num}  ·  {job['address']}", addr_style))
+            story.append(Paragraph(f"Arrive {eta}  ·  {travel} min drive  ·  {slot_label}", meta_style))
+            if job["type"] == "delivery":
+                qty = job["qty"]
+                story.append(Paragraph(f"Del {qty} bag{'s' if qty > 1 else ''}", del_style))
 
-        slot_label = f"[booked {format_time(job['slot_start'])}–{format_time(job['slot_end'])}]"
-        qty = job["qty"]
+    story.append(Spacer(1, 8*mm))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#E2E5EA")))
+    story.append(Paragraph(f"Generated {day_str}", footer_style))
 
-        line = f"{job['address']}  ({travel} min)  {eta}  {slot_label}"
-        if job["type"] == "delivery":
-            line += f"    ⇒ Del {qty} bag{'s' if qty > 1 else ''}"
-
-        doc.add_paragraph(line)
-
-    doc.add_paragraph()
-    footer = doc.add_paragraph()
-    footer.add_run(f"Generated {day_str}").italic = True
-    footer.runs[0].font.size = Pt(9)
-    footer.runs[0].font.color.rgb = RGBColor(0x99, 0x99, 0x99)
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    out_path = output_dir / f"{target_date.strftime('%d-%m-%y')} Route Plan.docx"
-    doc.save(str(out_path))
+    doc.build(story)
     return out_path

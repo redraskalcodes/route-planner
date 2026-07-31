@@ -26,6 +26,7 @@ from route_engine import (fetch_jobs, format_time, generate_route_doc,
                           get_calendar_service, optimise_route)
 
 
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 def get_user_data_dir() -> Path:
