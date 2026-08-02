@@ -60,7 +60,7 @@ a = Analysis(
         'matplotlib', 'numpy', 'pandas', 'scipy',
         'IPython', 'jupyter', 'notebook', 'nbformat',
         'sphinx', 'docutils', 'pytest', 'black',
-        'zmq', 'psutil', 'PIL', 'Pillow',
+        'zmq', 'psutil',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
