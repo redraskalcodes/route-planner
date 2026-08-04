@@ -92,11 +92,25 @@ def fetch_jobs(target_date: date, service, job_keyword: str, delivery_keyword: s
 
 # ── Distance matrix ──────────────────────────────────────────────────────────
 
-def build_matrix(gmaps, locations: list[str]) -> list[list[int]]:
+def _geocode_region(gmaps, address: str) -> str:
+    """Extract country code from geocoding the starting address, for API region bias."""
+    try:
+        results = gmaps.geocode(address)
+        for component in results[0].get("address_components", []):
+            if "country" in component["types"]:
+                return component["short_name"].lower()
+    except Exception:
+        pass
+    return ""
+
+def build_matrix(gmaps, locations: list[str], region: str = "") -> list[list[int]]:
     n = len(locations)
     matrix = [[0] * n for _ in range(n)]
+    kwargs = {"mode": "driving", "units": "metric"}
+    if region:
+        kwargs["region"] = region
     for i, origin in enumerate(locations):
-        result = gmaps.distance_matrix([origin], locations, mode="driving", units="metric")
+        result = gmaps.distance_matrix([origin], locations, **kwargs)
         for j, el in enumerate(result["rows"][0]["elements"]):
             matrix[i][j] = round(el["duration"]["value"] / 60) if el["status"] == "OK" else 9999
     return matrix
@@ -213,7 +227,8 @@ def multi_start_optimise(matrix, jobs, start_time, service_time_min=15):
 
 def optimise_route(gmaps, jobs: list[dict], start_address: str, service_time_min: int = 15) -> list[dict]:
     locations = [start_address] + [j["address"] for j in jobs]
-    matrix = build_matrix(gmaps, locations)
+    region = _geocode_region(gmaps, start_address)
+    matrix = build_matrix(gmaps, locations, region=region)
 
     start_time = min(j["slot_start"] for j in jobs)
     best_order, _ = multi_start_optimise(matrix, jobs, start_time, service_time_min)
