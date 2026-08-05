@@ -51,8 +51,12 @@ CREDENTIALS_PATH = DATA_DIR / "credentials.json"
 TOKEN_PATH       = DATA_DIR / "token.pickle"
 EULA_ACCEPTED    = DATA_DIR / "eula_accepted.txt"
 LICENSE_PATH     = DATA_DIR / "license.txt"
+INSTALL_DATE_PATH = DATA_DIR / "install_date.txt"
 RESOURCE_DIR     = get_resource_dir()
 EULA_TEXT_PATH   = RESOURCE_DIR / "EULA.txt"
+
+TRIAL_DAYS = 30
+FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfaekAeWkPcVfDnAmdGRRvO30dJzQF6Tr4Ex5P5ycpmC7XhCw/viewform"
 
 # Auto-copy bundled credentials.json to user data dir on first run
 _bundled_creds = RESOURCE_DIR / "credentials.json"
@@ -87,12 +91,30 @@ def validate_key(key: str) -> bool:
     h = hashlib.sha256((SALT + normalized).encode()).hexdigest()
     return h in VALID_KEY_HASHES
 
+def get_trial_info() -> dict:
+    """Returns dict with trial status: days_remaining, expired, in_trial."""
+    if not INSTALL_DATE_PATH.exists():
+        return {"in_trial": True, "days_remaining": TRIAL_DAYS, "expired": False}
+    try:
+        install_date = date.fromisoformat(INSTALL_DATE_PATH.read_text().strip())
+    except Exception:
+        return {"in_trial": True, "days_remaining": TRIAL_DAYS, "expired": False}
+    elapsed = (date.today() - install_date).days
+    days_remaining = max(0, TRIAL_DAYS - elapsed)
+    return {
+        "in_trial": days_remaining > 0,
+        "days_remaining": days_remaining,
+        "expired": days_remaining == 0,
+    }
+
 def guard():
-    """Returns a redirect if EULA or license not yet done, else None."""
+    """Returns a redirect if EULA not done, or trial expired without license, else None."""
     if not eula_accepted():
         return redirect(url_for("eula"))
     if not license_activated():
-        return redirect(url_for("license"))
+        trial = get_trial_info()
+        if trial["expired"]:
+            return redirect(url_for("trial_expired"))
     return None
 
 
@@ -108,6 +130,8 @@ def eula():
 @app.route("/eula/accept", methods=["POST"])
 def eula_accept():
     EULA_ACCEPTED.write_text(fmt_date(date.today()))
+    if not INSTALL_DATE_PATH.exists():
+        INSTALL_DATE_PATH.write_text(date.today().isoformat())
     return "", 204
 
 
@@ -134,6 +158,34 @@ def license():
     return render_template("license.html", error=error, submitted_key=submitted_key)
 
 
+# ── Trial expired ─────────────────────────────────────────────────────────────
+
+@app.route("/trial-expired", methods=["GET", "POST"])
+def trial_expired():
+    if not eula_accepted():
+        return redirect(url_for("eula"))
+    if license_activated():
+        return redirect(url_for("index"))
+    trial = get_trial_info()
+    if not trial["expired"]:
+        return redirect(url_for("index"))
+
+    error = None
+    submitted_key = ""
+    if request.method == "POST":
+        submitted_key = request.form.get("license_key", "").strip()
+        if validate_key(submitted_key):
+            LICENSE_PATH.write_text(submitted_key.upper())
+            return redirect(url_for("index"))
+        else:
+            error = "Invalid licence key. Please check and try again."
+
+    return render_template("trial_expired.html",
+                           error=error,
+                           submitted_key=submitted_key,
+                           feedback_url=FEEDBACK_FORM_URL)
+
+
 # ── Main routes ───────────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -143,9 +195,11 @@ def index():
     cfg = load_config()
     if not cfg or not CREDENTIALS_PATH.exists():
         return redirect(url_for("setup"))
+    trial = get_trial_info() if not license_activated() else None
     return render_template("index.html",
                            today=date.today().strftime("%Y-%m-%d"),
-                           config=cfg)
+                           config=cfg,
+                           trial=trial)
 
 
 @app.route("/setup", methods=["GET", "POST"])

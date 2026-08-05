@@ -271,6 +271,18 @@
     <a href="/setup">⚙ Settings</a>
 </div>
 
+{% if trial %}
+<div style="background:{% if trial.days_remaining <= 5 %}#fef2f2{% else %}#fffbeb{% endif %};
+            border-bottom:1px solid {% if trial.days_remaining <= 5 %}#fca5a5{% else %}#fde68a{% endif %};
+            padding:10px 24px; font-size:13px; text-align:center; color:#444;">
+    {% if trial.days_remaining <= 5 %}⚠️{% else %}ℹ️{% endif %}
+    <strong>{{ trial.days_remaining }} day{{ 's' if trial.days_remaining != 1 else '' }} left in your free trial.</strong>
+    To continue after the trial, contact
+    <a href="mailto:yee.ang01@gmail.com" style="color:#1a73e8;">yee.ang01@gmail.com</a>
+    for a licence key.
+</div>
+{% endif %}
+
 <div class="container">
 
     <!-- Date picker -->

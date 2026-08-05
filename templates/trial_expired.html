@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trial Ended — Route Planner</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #1a1a2e;
+        }
+        .header {
+            background: #1a73e8;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+
+        .container { max-width: 520px; margin: 60px auto; padding: 0 16px; width: 100%; }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 36px 32px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+        }
+
+        .icon { font-size: 40px; margin-bottom: 16px; text-align: center; }
+        h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; text-align: center; }
+        .subtitle { font-size: 14px; color: #666; margin-bottom: 28px; line-height: 1.6; text-align: center; }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 24px 0;
+        }
+
+        label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 6px; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 13px 16px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-align: center;
+            text-transform: uppercase;
+            color: #1a1a2e;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            margin-bottom: 12px;
+        }
+        input[type="text"]:focus { border-color: #1a73e8; }
+        input[type="text"]::placeholder { letter-spacing: 1px; color: #bbb; text-transform: none; font-family: inherit; }
+
+        .btn {
+            width: 100%;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-feedback { background: #f0f2f5; color: #444; margin-top: 10px; }
+        .btn-feedback:hover { background: #e2e5ea; }
+
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #dc2626;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: {% if error %}block{% else %}none{% endif %};
+        }
+
+        .hint { font-size: 12px; color: #aaa; margin-top: 14px; text-align: center; }
+        .hint a { color: #1a73e8; text-decoration: none; }
+
+        .feedback-section { text-align: center; }
+        .feedback-section p { font-size: 13px; color: #666; margin-bottom: 14px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <span>🗺</span>
+    <h1>Route Planner</h1>
+</div>
+
+<div class="container">
+
+    <div class="card">
+        <div class="icon">⏰</div>
+        <h2>Your 30-Day Free Trial Has Ended</h2>
+        <p class="subtitle">
+            Thank you for trying Route Planner! To continue using the app,
+            enter your licence key below.<br><br>
+            Don't have one? Contact us at
+            <a href="mailto:yee.ang01@gmail.com" style="color:#1a73e8;">yee.ang01@gmail.com</a>
+            to get your annual subscription.
+        </p>
+
+        <label>Licence Key</label>
+        <form method="POST">
+            <div class="error-box" id="errorBox">{% if error %}{{ error }}{% endif %}</div>
+            <input type="text" name="license_key" id="keyInput"
+                   placeholder="ROUTE-XXXX-XXXX-XXXX"
+                   value="{{ submitted_key or '' }}"
+                   autocomplete="off" spellcheck="false"
+                   autofocus>
+            <button type="submit" class="btn btn-primary">Activate →</button>
+        </form>
+
+        <div class="hint">Key format: <strong>ROUTE-XXXX-XXXX-XXXX</strong></div>
+    </div>
+
+    <div class="card feedback-section">
+        <p>
+            <strong>Not continuing?</strong><br>
+            We'd love to know how we can improve. It takes less than a minute.
+        </p>
+        <a href="{{ feedback_url }}" target="_blank">
+            <button class="btn btn-feedback">📝 Share Feedback</button>
+        </a>
+    </div>
+
+</div>
+
+<script>
+const inp = document.getElementById('keyInput');
+inp.addEventListener('input', function() {
+    let v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (v.startsWith('ROUTE')) v = v.slice(5);
+    let parts = [];
+    if (v.length > 0) parts.push(v.slice(0, 4));
+    if (v.length > 4) parts.push(v.slice(4, 8));
+    if (v.length > 8) parts.push(v.slice(8, 12));
+    this.value = parts.length ? 'ROUTE-' + parts.join('-') : '';
+});
+</script>
+</body>
+</html>
