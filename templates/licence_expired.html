@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activate — Route Planner</title>
+    <title>Licence Expired — Route Planner</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -24,21 +24,18 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         .header h1 { font-size: 20px; font-weight: 600; }
-
-        .container { max-width: 480px; margin: 80px auto; padding: 0 16px; width: 100%; }
-
+        .container { max-width: 520px; margin: 60px auto; padding: 0 16px; width: 100%; }
         .card {
             background: white;
             border-radius: 12px;
             padding: 36px 32px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-            text-align: center;
+            margin-bottom: 16px;
         }
-
-        .lock-icon { font-size: 40px; margin-bottom: 16px; }
-        .card h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-        .card p { font-size: 14px; color: #666; margin-bottom: 28px; line-height: 1.5; }
-
+        .icon { font-size: 40px; margin-bottom: 16px; text-align: center; }
+        h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; text-align: center; }
+        .subtitle { font-size: 14px; color: #666; margin-bottom: 28px; line-height: 1.6; text-align: center; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 6px; }
         input[type="text"] {
             width: 100%;
             padding: 13px 16px;
@@ -52,15 +49,12 @@
             outline: none;
             transition: border-color 0.2s;
             font-family: 'SF Mono', 'Consolas', monospace;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         input[type="text"]:focus { border-color: #1a73e8; }
         input[type="text"]::placeholder { letter-spacing: 1px; color: #bbb; text-transform: none; font-family: inherit; }
-
-        .btn-activate {
+        .btn {
             width: 100%;
-            background: #1a73e8;
-            color: white;
             border: none;
             padding: 13px;
             border-radius: 8px;
@@ -69,8 +63,22 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .btn-activate:hover { background: #1557b0; }
-
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-renew {
+            display: block;
+            width: 100%;
+            background: #16a34a;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .btn-renew:hover { background: #15803d; }
         .error-box {
             background: #fef2f2;
             border: 1px solid #fca5a5;
@@ -78,12 +86,13 @@
             padding: 10px 14px;
             color: #dc2626;
             font-size: 13px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             display: {% if error %}block{% else %}none{% endif %};
         }
-
-        .hint { font-size: 12px; color: #aaa; margin-top: 16px; }
+        .hint { font-size: 12px; color: #aaa; margin-top: 14px; text-align: center; }
         .hint a { color: #1a73e8; text-decoration: none; }
+        .divider { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+        .renew-section p { font-size: 13px; color: #666; margin-bottom: 14px; line-height: 1.6; text-align: center; }
     </style>
 </head>
 <body>
@@ -94,12 +103,26 @@
 </div>
 
 <div class="container">
-    <div class="card">
-        <div class="lock-icon">🔑</div>
-        <h2>Activate Your Copy</h2>
-        <p>Enter the licence key you received to get started.<br>
-           It looks like <strong>ROUTE-XXXX-XXXX-XXXX</strong></p>
 
+    <div class="card">
+        <div class="icon">🔑</div>
+        <h2>Your Annual Licence Has Expired</h2>
+        <p class="subtitle">
+            Your Route Planner licence has expired. Renew your annual subscription
+            to continue optimising your routes.<br><br>
+            Once renewed, enter your new licence key below to reactivate instantly.
+        </p>
+
+        <div class="renew-section">
+            <p><strong>Renew now for just $24/year</strong> — billed once annually.</p>
+            <a href="mailto:admin@automateright.sg?subject=Route Planner Renewal" class="btn-renew">
+                Renew Subscription →
+            </a>
+        </div>
+
+        <div class="divider"></div>
+
+        <label>Already renewed? Enter your new licence key:</label>
         <form method="POST">
             <div class="error-box" id="errorBox">{% if error %}{{ error }}{% endif %}</div>
             <input type="text" name="license_key" id="keyInput"
@@ -107,17 +130,17 @@
                    value="{{ submitted_key or '' }}"
                    autocomplete="off" spellcheck="false"
                    autofocus>
-            <button type="submit" class="btn-activate">Activate →</button>
+            <button type="submit" class="btn btn-primary">Activate →</button>
         </form>
 
         <div class="hint">
-            Need a key? Contact <a href="mailto:admin@automateright.sg">admin@automateright.sg</a>
+            Need help? <a href="mailto:admin@automateright.sg">admin@automateright.sg</a>
         </div>
     </div>
+
 </div>
 
 <script>
-/* Auto-format key as user types: insert dashes at positions 6, 11, 16 */
 const inp = document.getElementById('keyInput');
 inp.addEventListener('input', function() {
     let v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');

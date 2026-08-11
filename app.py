@@ -50,8 +50,9 @@ CONFIG_PATH      = DATA_DIR / "config.json"
 CREDENTIALS_PATH = DATA_DIR / "credentials.json"
 TOKEN_PATH       = DATA_DIR / "token.pickle"
 EULA_ACCEPTED    = DATA_DIR / "eula_accepted.txt"
-LICENSE_PATH     = DATA_DIR / "license.txt"
-INSTALL_DATE_PATH = DATA_DIR / "install_date.txt"
+LICENSE_PATH          = DATA_DIR / "license.txt"
+INSTALL_DATE_PATH     = DATA_DIR / "install_date.txt"
+ACTIVATION_DATE_PATH  = DATA_DIR / "activation_date.txt"
 RESOURCE_DIR     = get_resource_dir()
 EULA_TEXT_PATH   = RESOURCE_DIR / "EULA.txt"
 
@@ -86,6 +87,27 @@ def eula_accepted() -> bool:
 def license_activated() -> bool:
     return LICENSE_PATH.exists()
 
+def get_licence_expiry_info() -> dict:
+    """Returns dict: activated, expired, days_remaining, expiry_date."""
+    if not LICENSE_PATH.exists():
+        return {"activated": False, "expired": False, "days_remaining": 0, "expiry_date": None}
+    if not ACTIVATION_DATE_PATH.exists():
+        # Legacy: key existed before expiry tracking — treat as activated today
+        ACTIVATION_DATE_PATH.write_text(date.today().isoformat())
+    try:
+        activation_date = date.fromisoformat(ACTIVATION_DATE_PATH.read_text().strip())
+    except Exception:
+        activation_date = date.today()
+        ACTIVATION_DATE_PATH.write_text(activation_date.isoformat())
+    expiry_date = activation_date.replace(year=activation_date.year + 1)
+    days_remaining = max(0, (expiry_date - date.today()).days)
+    return {
+        "activated": True,
+        "expired": days_remaining == 0,
+        "days_remaining": days_remaining,
+        "expiry_date": expiry_date,
+    }
+
 def validate_key(key: str) -> bool:
     normalized = key.upper().replace("-", "").replace(" ", "")
     h = hashlib.sha256((SALT + normalized).encode()).hexdigest()
@@ -108,10 +130,14 @@ def get_trial_info() -> dict:
     }
 
 def guard():
-    """Returns a redirect if EULA not done, or trial expired without license, else None."""
+    """Returns a redirect if EULA not done, trial expired, or licence expired, else None."""
     if not eula_accepted():
         return redirect(url_for("eula"))
-    if not license_activated():
+    if license_activated():
+        info = get_licence_expiry_info()
+        if info["expired"]:
+            return redirect(url_for("licence_expired"))
+    else:
         trial = get_trial_info()
         if trial["expired"]:
             return redirect(url_for("trial_expired"))
@@ -151,9 +177,10 @@ def license():
         submitted_key = request.form.get("license_key", "").strip()
         if validate_key(submitted_key):
             LICENSE_PATH.write_text(submitted_key.upper())
+            ACTIVATION_DATE_PATH.write_text(date.today().isoformat())
             return redirect(url_for("index"))
         else:
-            error = "Invalid licence key. Please check and try again, or contact yee.ang01@gmail.com."
+            error = "Invalid licence key. Please check and try again, or contact admin@automateright.sg."
 
     return render_template("license.html", error=error, submitted_key=submitted_key)
 
@@ -176,6 +203,7 @@ def trial_expired():
         submitted_key = request.form.get("license_key", "").strip()
         if validate_key(submitted_key):
             LICENSE_PATH.write_text(submitted_key.upper())
+            ACTIVATION_DATE_PATH.write_text(date.today().isoformat())
             return redirect(url_for("index"))
         else:
             error = "Invalid licence key. Please check and try again."
@@ -184,6 +212,32 @@ def trial_expired():
                            error=error,
                            submitted_key=submitted_key,
                            feedback_url=FEEDBACK_FORM_URL)
+
+
+# ── Licence expired ───────────────────────────────────────────────────────────
+
+@app.route("/licence-expired", methods=["GET", "POST"])
+def licence_expired():
+    if not eula_accepted():
+        return redirect(url_for("eula"))
+    info = get_licence_expiry_info()
+    if not info["expired"]:
+        return redirect(url_for("index"))
+
+    error = None
+    submitted_key = ""
+    if request.method == "POST":
+        submitted_key = request.form.get("license_key", "").strip()
+        if validate_key(submitted_key):
+            LICENSE_PATH.write_text(submitted_key.upper())
+            ACTIVATION_DATE_PATH.write_text(date.today().isoformat())
+            return redirect(url_for("index"))
+        else:
+            error = "Invalid licence key. Please check and try again."
+
+    return render_template("licence_expired.html",
+                           error=error,
+                           submitted_key=submitted_key)
 
 
 # ── Main routes ───────────────────────────────────────────────────────────────
@@ -196,10 +250,12 @@ def index():
     if not cfg or not CREDENTIALS_PATH.exists():
         return redirect(url_for("setup"))
     trial = get_trial_info() if not license_activated() else None
+    licence = get_licence_expiry_info() if license_activated() else None
     return render_template("index.html",
                            today=date.today().strftime("%Y-%m-%d"),
                            config=cfg,
-                           trial=trial)
+                           trial=trial,
+                           licence=licence)
 
 
 @app.route("/setup", methods=["GET", "POST"])

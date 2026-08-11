@@ -92,25 +92,70 @@ def fetch_jobs(target_date: date, service, job_keyword: str, delivery_keyword: s
 
 # ── Distance matrix ──────────────────────────────────────────────────────────
 
-def _geocode_region(gmaps, address: str) -> str:
-    """Extract country code from geocoding the starting address, for API region bias."""
+import math
+
+def _distance_km(lat1, lng1, lat2, lng2) -> float:
+    """Approximate distance in km between two lat/lng points."""
+    dlat = math.radians(lat2 - lat1)
+    dlng = math.radians(lng2 - lng1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng/2)**2
+    return 6371 * 2 * math.asin(math.sqrt(a))
+
+
+def _geocode_to_latlng(gmaps, address: str, region: str = "", anchor: tuple = None) -> tuple | str:
+    """Geocode an address to (lat, lng). Falls back to raw string if geocoding fails.
+    anchor: (lat, lng) of starting location — results >200km away are rejected and retried with country suffix."""
+    import unicodedata
+    normalised = unicodedata.normalize("NFKD", address).encode("ascii", "ignore").decode("ascii")
+
+    COUNTRY_NAMES = {"sg": "Singapore", "my": "Malaysia", "au": "Australia",
+                     "gb": "UK", "us": "USA", "id": "Indonesia", "th": "Thailand"}
+    country_suffix = COUNTRY_NAMES.get(region, "")
+
+    attempts = [normalised, address]
+    if country_suffix:
+        attempts += [f"{normalised}, {country_suffix}", f"{address}, {country_suffix}"]
+
+    kwargs = {"region": region} if region else {}
+    for attempt in attempts:
+        try:
+            results = gmaps.geocode(attempt, **kwargs)
+            if results:
+                loc = results[0]["geometry"]["location"]
+                lat, lng = loc["lat"], loc["lng"]
+                if anchor and _distance_km(anchor[0], anchor[1], lat, lng) > 200:
+                    continue  # result is in the wrong country — try next attempt
+                return (lat, lng)
+        except Exception:
+            pass
+    raise ValueError(
+        f"Could not locate \"{address}\" on Google Maps. "
+        f"Please add a full address (including postal code) to that calendar event and try again."
+    )
+
+
+def _geocode_region(gmaps, address: str) -> tuple[str, tuple | None]:
+    """Return (country_code, (lat, lng)) from geocoding the starting address."""
     try:
         results = gmaps.geocode(address)
-        for component in results[0].get("address_components", []):
-            if "country" in component["types"]:
-                return component["short_name"].lower()
+        if results:
+            loc = results[0]["geometry"]["location"]
+            anchor = (loc["lat"], loc["lng"])
+            for component in results[0].get("address_components", []):
+                if "country" in component["types"]:
+                    return component["short_name"].lower(), anchor
+            return "", anchor
     except Exception:
         pass
-    return ""
+    return "", None
 
-def build_matrix(gmaps, locations: list[str], region: str = "") -> list[list[int]]:
-    n = len(locations)
+
+def build_matrix(gmaps, locations: list[str], region: str = "", anchor: tuple = None) -> list[list[int]]:
+    resolved = [_geocode_to_latlng(gmaps, loc, region, anchor) for loc in locations]
+    n = len(resolved)
     matrix = [[0] * n for _ in range(n)]
-    kwargs = {"mode": "driving", "units": "metric"}
-    if region:
-        kwargs["region"] = region
-    for i, origin in enumerate(locations):
-        result = gmaps.distance_matrix([origin], locations, **kwargs)
+    for i, origin in enumerate(resolved):
+        result = gmaps.distance_matrix([origin], resolved, mode="driving", units="metric")
         for j, el in enumerate(result["rows"][0]["elements"]):
             matrix[i][j] = round(el["duration"]["value"] / 60) if el["status"] == "OK" else 9999
     return matrix
@@ -227,8 +272,8 @@ def multi_start_optimise(matrix, jobs, start_time, service_time_min=15):
 
 def optimise_route(gmaps, jobs: list[dict], start_address: str, service_time_min: int = 15) -> list[dict]:
     locations = [start_address] + [j["address"] for j in jobs]
-    region = _geocode_region(gmaps, start_address)
-    matrix = build_matrix(gmaps, locations, region=region)
+    region, anchor = _geocode_region(gmaps, start_address)
+    matrix = build_matrix(gmaps, locations, region=region, anchor=anchor)
 
     start_time = min(j["slot_start"] for j in jobs)
     best_order, _ = multi_start_optimise(matrix, jobs, start_time, service_time_min)
