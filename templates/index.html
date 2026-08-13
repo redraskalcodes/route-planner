@@ -283,15 +283,13 @@
 </div>
 {% endif %}
 
-{% if licence and licence.days_remaining <= 30 %}
+{% if licence and licence.days_remaining <= 14 %}
 <div style="background:{% if licence.days_remaining <= 7 %}#fef2f2{% else %}#fffbeb{% endif %};
             border-bottom:1px solid {% if licence.days_remaining <= 7 %}#fca5a5{% else %}#fde68a{% endif %};
             padding:10px 24px; font-size:13px; text-align:center; color:#444;">
     {% if licence.days_remaining <= 7 %}⚠️{% else %}ℹ️{% endif %}
     <strong>Your licence expires in {{ licence.days_remaining }} day{{ 's' if licence.days_remaining != 1 else '' }}.</strong>
-    Renew your annual subscription at
-    <a href="mailto:admin@automateright.sg" style="color:#1a73e8;">admin@automateright.sg</a>
-    to avoid any interruption.
+    <a href="https://buy.stripe.com/7sY28rfabeYNb4XcYpbV600" target="_blank" style="color:#1a73e8;font-weight:600;">Renew now for $24/year →</a>
 </div>
 {% endif %}
 

@@ -53,6 +53,8 @@ EULA_ACCEPTED    = DATA_DIR / "eula_accepted.txt"
 LICENSE_PATH          = DATA_DIR / "license.txt"
 INSTALL_DATE_PATH     = DATA_DIR / "install_date.txt"
 ACTIVATION_DATE_PATH  = DATA_DIR / "activation_date.txt"
+USER_EMAIL_PATH       = DATA_DIR / "user_email.txt"
+WEBHOOK_SERVER_URL    = "https://web-production-de6df.up.railway.app"
 RESOURCE_DIR     = get_resource_dir()
 EULA_TEXT_PATH   = RESOURCE_DIR / "EULA.txt"
 
@@ -155,9 +157,25 @@ def eula():
 
 @app.route("/eula/accept", methods=["POST"])
 def eula_accept():
+    import requests as req_lib
     EULA_ACCEPTED.write_text(fmt_date(date.today()))
+    today_iso = date.today().isoformat()
     if not INSTALL_DATE_PATH.exists():
-        INSTALL_DATE_PATH.write_text(date.today().isoformat())
+        INSTALL_DATE_PATH.write_text(today_iso)
+
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "").strip()
+    if email:
+        USER_EMAIL_PATH.write_text(email)
+        try:
+            req_lib.post(
+                f"{WEBHOOK_SERVER_URL}/register-trial",
+                json={"email": email, "install_date": today_iso},
+                timeout=5,
+            )
+        except Exception:
+            pass  # non-fatal — trial still starts
+
     return "", 204
 
 
