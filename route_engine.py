@@ -150,47 +150,114 @@ def _geocode_region(gmaps, address: str) -> tuple[str, tuple | None]:
     return "", None
 
 
-def build_matrix(gmaps, locations: list[str], region: str = "", anchor: tuple = None) -> list[list[int]]:
-    resolved = [_geocode_to_latlng(gmaps, loc, region, anchor) for loc in locations]
+def _polar_angle(depot_lat: float, depot_lng: float, lat: float, lng: float) -> float:
+    """Clockwise angle from north (0°=N, 90°=E, 180°=S, 270°=W)."""
+    dlat = lat - depot_lat
+    dlng = lng - depot_lng
+    return math.degrees(math.atan2(dlng, dlat)) % 360
+
+
+def sweep_sort_jobs(jobs: list[dict], depot_coord: tuple, job_coords: list[tuple]) -> tuple[list[dict], list[tuple]]:
+    """Within each distinct time window, sort stops by polar angle from depot.
+    Stops in different windows keep their relative window ordering."""
+    from collections import defaultdict
+
+    window_key = lambda j: (j["slot_start"], j["slot_end"])
+
+    # Collect unique windows in order of first appearance
+    seen_windows: list = []
+    seen_set: set = set()
+    for job in jobs:
+        k = window_key(job)
+        if k not in seen_set:
+            seen_windows.append(k)
+            seen_set.add(k)
+
+    groups: dict = defaultdict(list)
+    for job, coord in zip(jobs, job_coords):
+        groups[window_key(job)].append((job, coord))
+
+    depot_lat, depot_lng = depot_coord
+    result_jobs, result_coords = [], []
+    for wk in seen_windows:
+        group = groups[wk]
+        if len(group) > 1:
+            group.sort(key=lambda t: _polar_angle(depot_lat, depot_lng, t[1][0], t[1][1]))
+        for job, coord in group:
+            result_jobs.append(job)
+            result_coords.append(coord)
+
+    return result_jobs, result_coords
+
+
+def _geocode_all(gmaps, locations: list[str], region: str = "", anchor: tuple = None) -> list[tuple]:
+    return [_geocode_to_latlng(gmaps, loc, region, anchor) for loc in locations]
+
+
+def build_matrix_from_coords(gmaps, resolved: list[tuple]) -> tuple[list[list[int]], list[list[float]]]:
+    """Returns (time_matrix_minutes, dist_matrix_km). One API call per row."""
     n = len(resolved)
-    matrix = [[0] * n for _ in range(n)]
+    time_matrix = [[0]   * n for _ in range(n)]
+    dist_matrix = [[0.0] * n for _ in range(n)]
     for i, origin in enumerate(resolved):
         result = gmaps.distance_matrix([origin], resolved, mode="driving", units="metric")
         for j, el in enumerate(result["rows"][0]["elements"]):
-            matrix[i][j] = round(el["duration"]["value"] / 60) if el["status"] == "OK" else 9999
-    return matrix
+            if el["status"] == "OK":
+                time_matrix[i][j] = round(el["duration"]["value"] / 60)
+                dist_matrix[i][j] = el["distance"]["value"] / 1000  # km
+            else:
+                time_matrix[i][j] = 9999
+                dist_matrix[i][j] = 9999.0
+    return time_matrix, dist_matrix
+
+
+def build_matrix(gmaps, locations: list[str], region: str = "", anchor: tuple = None) -> list[list[int]]:
+    resolved = _geocode_all(gmaps, locations, region, anchor)
+    time_matrix, _ = build_matrix_from_coords(gmaps, resolved)
+    return time_matrix
 
 
 # ── Route scoring ────────────────────────────────────────────────────────────
 
-def route_feasible_and_cost(order, matrix, jobs, start_time, service_time_min=15):
+def route_feasible_and_cost(order, time_matrix, jobs, start_time, service_time_min=15, dist_matrix=None):
+    """Cost = total distance driven (km) + wait-time penalty (at 0.5 km/min = ~30 km/h).
+    ETAs are computed from time_matrix; distance from dist_matrix (falls back to time_matrix)."""
     current = 0
     current_time = start_time
-    total_drive = 0
+    total_dist = 0.0
+    total_wait = 0.0
     penalty = 0
     feasible = True
     etas = []
 
+    dm = dist_matrix if dist_matrix is not None else time_matrix
+
     for idx in order:
-        travel = matrix[current][idx + 1]
-        arrival = current_time + timedelta(minutes=travel)
+        travel_time = time_matrix[current][idx + 1]
+        travel_dist = dm[current][idx + 1]
+        arrival = current_time + timedelta(minutes=travel_time)
         job = jobs[idx]
         if arrival > job["slot_end"]:
             feasible = False
             penalty += int((arrival - job["slot_end"]).total_seconds() / 60) * LATE_PENALTY_PER_MIN
+        wait = max(0.0, (job["slot_start"] - arrival).total_seconds() / 60)
+        total_wait += wait
         visit_time = max(arrival, job["slot_start"])
-        etas.append((visit_time, travel))
-        total_drive += travel
+        etas.append((visit_time, travel_time, travel_dist))
+        total_dist += travel_dist
         current_time = visit_time + timedelta(minutes=service_time_min)
         current = idx + 1
 
-    total_drive += matrix[current][0]
-    return feasible, total_drive + penalty, etas
+    total_dist += dm[current][0]
+    # Wait penalty: 0.5 km per idle minute (equivalent to 30 km/h average speed)
+    return feasible, total_dist + total_wait * 0.5 + penalty, etas
 
 
 # ── Route construction ───────────────────────────────────────────────────────
 
-def nearest_neighbour_init(matrix, jobs, start_time, forced_first=None, service_time_min=15):
+def nearest_neighbour_init(time_matrix, jobs, start_time, forced_first=None, service_time_min=15, dist_matrix=None):
+    """Greedy init: feasibility checked by time, nearest-next chosen by distance."""
+    dm = dist_matrix if dist_matrix is not None else time_matrix
     n = len(jobs)
     unvisited = set(range(n))
     order = []
@@ -199,8 +266,8 @@ def nearest_neighbour_init(matrix, jobs, start_time, forced_first=None, service_
 
     if forced_first is not None and forced_first in unvisited:
         idx = forced_first
-        travel = matrix[current][idx + 1]
-        arrival = current_time + timedelta(minutes=travel)
+        travel_time = time_matrix[current][idx + 1]
+        arrival = current_time + timedelta(minutes=travel_time)
         order.append(idx)
         unvisited.remove(idx)
         current = idx + 1
@@ -208,16 +275,17 @@ def nearest_neighbour_init(matrix, jobs, start_time, forced_first=None, service_
 
     while unvisited:
         candidates = [
-            (matrix[current][idx + 1], idx, current_time + timedelta(minutes=matrix[current][idx + 1]))
+            (dm[current][idx + 1], idx, current_time + timedelta(minutes=time_matrix[current][idx + 1]))
             for idx in unvisited
-            if current_time + timedelta(minutes=matrix[current][idx + 1]) <= jobs[idx]["slot_end"]
+            if current_time + timedelta(minutes=time_matrix[current][idx + 1]) <= jobs[idx]["slot_end"]
         ]
         if candidates:
-            travel, idx, arrival = min(candidates, key=lambda t: t[0])
+            _, idx, arrival = min(candidates, key=lambda t: t[0])
+            travel_time = time_matrix[current][idx + 1]
         else:
             idx = min(unvisited, key=lambda i: jobs[i]["slot_end"])
-            travel = matrix[current][idx + 1]
-            arrival = current_time + timedelta(minutes=travel)
+            travel_time = time_matrix[current][idx + 1]
+            arrival = current_time + timedelta(minutes=travel_time)
 
         order.append(idx)
         unvisited.remove(idx)
@@ -227,8 +295,8 @@ def nearest_neighbour_init(matrix, jobs, start_time, forced_first=None, service_
     return order
 
 
-def local_search_improve(order, matrix, jobs, start_time, max_iters=300, service_time_min=15):
-    _, best_score, _ = route_feasible_and_cost(order, matrix, jobs, start_time, service_time_min)
+def local_search_improve(order, time_matrix, jobs, start_time, max_iters=300, service_time_min=15, dist_matrix=None):
+    _, best_score, _ = route_feasible_and_cost(order, time_matrix, jobs, start_time, service_time_min, dist_matrix)
     improved = True
     iters = 0
     n = len(order)
@@ -240,7 +308,7 @@ def local_search_improve(order, matrix, jobs, start_time, max_iters=300, service
         for i in range(n - 1):
             for j in range(i + 1, n):
                 cand = order[:i] + order[i:j + 1][::-1] + order[j + 1:]
-                _, score, _ = route_feasible_and_cost(cand, matrix, jobs, start_time, service_time_min)
+                _, score, _ = route_feasible_and_cost(cand, time_matrix, jobs, start_time, service_time_min, dist_matrix)
                 if score < best_score:
                     order, best_score = cand, score
                     improved = True
@@ -252,7 +320,7 @@ def local_search_improve(order, matrix, jobs, start_time, max_iters=300, service
                 cand = rest[:pos] + [stop] + rest[pos:]
                 if cand == order:
                     continue
-                _, score, _ = route_feasible_and_cost(cand, matrix, jobs, start_time, service_time_min)
+                _, score, _ = route_feasible_and_cost(cand, time_matrix, jobs, start_time, service_time_min, dist_matrix)
                 if score < best_score:
                     order, best_score = cand, score
                     improved = True
@@ -260,52 +328,71 @@ def local_search_improve(order, matrix, jobs, start_time, max_iters=300, service
     return order, best_score
 
 
-def multi_start_optimise(matrix, jobs, start_time, service_time_min=15):
+def multi_start_optimise(time_matrix, jobs, start_time, service_time_min=15, dist_matrix=None):
     best_order, best_score = None, float("inf")
     for first in range(len(jobs)):
-        init = nearest_neighbour_init(matrix, jobs, start_time, forced_first=first, service_time_min=service_time_min)
-        order, score = local_search_improve(init, matrix, jobs, start_time, service_time_min=service_time_min)
+        init = nearest_neighbour_init(time_matrix, jobs, start_time, forced_first=first,
+                                      service_time_min=service_time_min, dist_matrix=dist_matrix)
+        order, score = local_search_improve(init, time_matrix, jobs, start_time,
+                                            service_time_min=service_time_min, dist_matrix=dist_matrix)
         if score < best_score:
             best_order, best_score = order, score
     return best_order, best_score
 
 
 def optimise_route(gmaps, jobs: list[dict], start_address: str, service_time_min: int = 15) -> list[dict]:
-    locations = [start_address] + [j["address"] for j in jobs]
     region, anchor = _geocode_region(gmaps, start_address)
-    matrix = build_matrix(gmaps, locations, region=region, anchor=anchor)
+
+    # Geocode everything once so we can use coordinates for sweep sorting
+    locations = [start_address] + [j["address"] for j in jobs]
+    all_coords = _geocode_all(gmaps, locations, region=region, anchor=anchor)
+    depot_coord = all_coords[0]
+    job_coords = all_coords[1:]
+
+    # Within each time window, sort stops by compass direction from depot
+    # to avoid geographic backtracking when multiple stops share the same window
+    jobs, job_coords = sweep_sort_jobs(jobs, depot_coord, job_coords)
+
+    time_matrix, dist_matrix = build_matrix_from_coords(gmaps, [depot_coord] + job_coords)
 
     start_time = min(j["slot_start"] for j in jobs)
-    best_order, _ = multi_start_optimise(matrix, jobs, start_time, service_time_min)
+    best_order, _ = multi_start_optimise(time_matrix, jobs, start_time, service_time_min, dist_matrix)
 
     first_idx = best_order[0]
-    travel_to_first = matrix[0][first_idx + 1]
+    travel_to_first = time_matrix[0][first_idx + 1]
     departure_time = jobs[first_idx]["slot_start"] - timedelta(minutes=travel_to_first)
 
-    feasible, drive_total, etas = route_feasible_and_cost(best_order, matrix, jobs, departure_time, service_time_min)
+    feasible, _, etas = route_feasible_and_cost(best_order, time_matrix, jobs, departure_time,
+                                                 service_time_min, dist_matrix)
 
     ordered = []
+    total_dist_km = 0.0
     for pos, idx in enumerate(best_order):
         job = jobs[idx]
-        visit_time, travel = etas[pos]
-        job["travel_min"] = travel
+        visit_time, travel_min, travel_km = etas[pos]
+        job["travel_min"] = travel_min
+        job["travel_km"] = round(travel_km, 1)
         job["eta"] = visit_time
+        total_dist_km += travel_km
         ordered.append(job)
 
     last_idx = best_order[-1]
-    return_travel = matrix[last_idx + 1][0]
-    return_eta = etas[-1][0] + timedelta(minutes=service_time_min + return_travel)
+    return_travel_min = time_matrix[last_idx + 1][0]
+    return_travel_km  = dist_matrix[last_idx + 1][0]
+    return_eta = etas[-1][0] + timedelta(minutes=service_time_min + return_travel_min)
+    total_dist_km += return_travel_km
     ordered.append({
         "type": "office",
         "address": start_address,
         "qty": 0,
-        "travel_min": return_travel,
+        "travel_min": return_travel_min,
+        "travel_km": round(return_travel_km, 1),
         "eta": return_eta,
         "slot_start": return_eta,
         "slot_end": return_eta,
     })
 
-    print(f"  → {drive_total} min total driving (feasible: {feasible})")
+    print(f"  → {total_dist_km:.1f} km total distance (feasible: {feasible})")
     return ordered
 
 
@@ -360,15 +447,17 @@ def generate_route_doc(target_date: date, ordered_jobs: list[dict], output_dir: 
         travel = job.get("travel_min", "?")
         eta    = format_time(job["eta"]) if "eta" in job else "?"
 
+        km = job.get("travel_km", "")
+        km_str = f" / {km} km" if km != "" else ""
         if job["type"] == "office":
             story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#E2E5EA"), spaceBefore=8))
             story.append(Paragraph(f"{job['address']}", office_style))
-            story.append(Paragraph(f"Arrive {eta}  ·  {travel} min drive", meta_style))
+            story.append(Paragraph(f"Arrive {eta}  ·  {travel} min{km_str}", meta_style))
         else:
             slot_label = f"Booked {format_time(job['slot_start'])}–{format_time(job['slot_end'])}"
             stop_num = i + 1
             story.append(Paragraph(f"Stop {stop_num}  ·  {job['address']}", addr_style))
-            story.append(Paragraph(f"Arrive {eta}  ·  {travel} min drive  ·  {slot_label}", meta_style))
+            story.append(Paragraph(f"Arrive {eta}  ·  {travel} min{km_str}  ·  {slot_label}", meta_style))
             if job["type"] == "delivery":
                 qty = job["qty"]
                 story.append(Paragraph(f"Del {qty} bag{'s' if qty > 1 else ''}", del_style))
