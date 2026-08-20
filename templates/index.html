@@ -277,9 +277,11 @@
             padding:10px 24px; font-size:13px; text-align:center; color:#444;">
     {% if trial.days_remaining <= 5 %}⚠️{% else %}ℹ️{% endif %}
     <strong>{{ trial.days_remaining }} day{{ 's' if trial.days_remaining != 1 else '' }} left in your free trial.</strong>
-    To continue after the trial, contact
-    <a href="mailto:admin@automateright.sg" style="color:#1a73e8;">admin@automateright.sg</a>
-    for a licence key.
+    <a href="https://buy.stripe.com/7sY28rfabeYNb4XcYpbV600" target="_blank"
+       style="display:inline-block;margin-left:10px;background:#1a73e8;color:white;
+              text-decoration:none;padding:4px 14px;border-radius:6px;font-size:12px;font-weight:600;">
+        Subscribe $24/year →
+    </a>
 </div>
 {% endif %}
 
