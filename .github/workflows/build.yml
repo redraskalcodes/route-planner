@@ -37,6 +37,28 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -A
           security set-key-partition-list -S apple-tool:,apple: -s -k "build123" build.keychain
 
+      - name: Inspect app bundle structure
+        run: |
+          APP="dist/Route Planner.app"
+          echo "=== Python binary locations and hardlink counts ==="
+          find "$APP" -name "Python" -not -name "*.py" | while read f; do
+            echo "---"
+            ls -li "$f"
+            file "$f"
+          done
+          echo "=== MacOS executables ==="
+          ls -li "$APP/Contents/MacOS/"
+          echo "=== Existing signatures on failing files ==="
+          for f in \
+            "$APP/Contents/MacOS/Route Planner" \
+            "$APP/Contents/Resources/Python" \
+            "$APP/Contents/Frameworks/Python"; do
+            if [ -f "$f" ]; then
+              echo "--- $f ---"
+              codesign -dv "$f" 2>&1 || echo "(no signature)"
+            fi
+          done
+
       - name: Sign app
         run: |
           APP="dist/Route Planner.app"
@@ -58,13 +80,20 @@ jobs:
           </plist>
           ENTEOF
 
-          # Step 1: Sign all Mach-O binaries NOT inside .framework bundles and NOT the main executable
-          # (main executable is handled by the app bundle signing in step 3)
-          find "$APP" -type f \
-            | grep -v "\.framework/" \
-            | grep -v "Contents/MacOS/" \
-            | while read f; do
+          # Break hardlinks: any file with link count >1 shares an inode with another file.
+          # Signing one would affect all — break them into separate copies first.
+          echo "=== Breaking hardlinks ==="
+          find "$APP" -type f -links +1 | while read f; do
+            echo "Breaking hardlink: $f (nlink=$(stat -f '%l' "$f"))"
+            cp "$f" "${f}.__hl_tmp__"
+            mv "${f}.__hl_tmp__" "$f"
+          done
+
+          # Step 1: Sign all Mach-O binaries NOT inside .framework directories
+          echo "=== Signing individual Mach-O binaries ==="
+          find "$APP" -type f | grep -v "\.framework/" | while read f; do
             if file "$f" | grep -qE "Mach-O"; then
+              echo "Signing: $f"
               codesign --force --sign "$IDENTITY" \
                 --options runtime \
                 --timestamp \
@@ -73,16 +102,19 @@ jobs:
             fi
           done
 
-          # Step 2: Sign nested frameworks (deepest first so outer frameworks see signed inner content)
-          find "$APP" -name "*.framework" -type d | sort -r | while read f; do
+          # Step 2: Sign Python.framework versioned bundles explicitly, then the top-level frameworks
+          echo "=== Signing frameworks (deepest first) ==="
+          find "$APP" -name "*.framework" -type d | sort -r | while read fw; do
+            echo "Signing framework: $fw"
             codesign --force --sign "$IDENTITY" \
               --options runtime \
               --timestamp \
               --entitlements /tmp/entitlements.plist \
-              "$f"
+              "$fw"
           done
 
-          # Step 3: Sign the main app bundle last (this correctly signs Contents/MacOS/Route Planner)
+          # Step 3: Sign the main app bundle last
+          echo "=== Signing app bundle ==="
           codesign --force --verify --verbose \
             --sign "$IDENTITY" \
             --options runtime \
