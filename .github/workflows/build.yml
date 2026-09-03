@@ -46,18 +46,20 @@ jobs:
 
       - name: Notarize app
         env:
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY }}
         run: |
+          echo "$APPLE_API_KEY_CONTENT" | base64 --decode > /tmp/AuthKey.p8
           cd dist
           zip -r "Route Planner Mac.zip" "Route Planner.app"
           xcrun notarytool submit "Route Planner Mac.zip" \
-            --apple-id "wineponzwannabe@gmail.com" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "T7P783UZ9J" \
+            --key /tmp/AuthKey.p8 \
+            --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+            --issuer "${{ secrets.APPLE_API_ISSUER }}" \
             --wait
           xcrun stapler staple "Route Planner.app"
           rm "Route Planner Mac.zip"
           zip -r "Route Planner Mac.zip" "Route Planner.app"
+          rm /tmp/AuthKey.p8
 
       - name: Upload Mac build
         uses: actions/upload-artifact@v4
