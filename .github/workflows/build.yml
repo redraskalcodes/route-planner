@@ -42,12 +42,14 @@ jobs:
           APP="dist/Route Planner.app"
           IDENTITY="Developer ID Application: Yee Ling Ang (T7P783UZ9J)"
 
-          # Sign all nested binaries (dylibs, .so files, frameworks) individually first
-          find "$APP" -type f \( -name "*.dylib" -o -name "*.so" \) | while read f; do
-            codesign --force --verify --verbose \
-              --sign "$IDENTITY" \
-              --options runtime \
-              "$f"
+          # Sign all Mach-O binaries individually first (catches dylibs, .so files, bare executables like Python)
+          find "$APP" -type f | while read f; do
+            if file "$f" | grep -qE "Mach-O"; then
+              codesign --force --verify --verbose \
+                --sign "$IDENTITY" \
+                --options runtime \
+                "$f"
+            fi
           done
 
           # Sign nested frameworks
