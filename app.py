@@ -23,7 +23,7 @@ from google.auth.exceptions import RefreshError
 
 from license_keys import SALT, VALID_KEY_HASHES
 from route_engine import (fetch_jobs, format_time, generate_route_doc,
-                          get_calendar_service, optimise_route)
+                          get_calendar_service, get_google_email, optimise_route)
 
 
 
@@ -73,9 +73,16 @@ app = Flask(__name__, template_folder=str(RESOURCE_DIR / "templates"))
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def load_config() -> dict:
+    defaults = {
+        "output_dir": str(Path.home() / "Documents" / "Route Planner"),
+    }
     if CONFIG_PATH.exists():
-        return json.loads(CONFIG_PATH.read_text())
-    return {}
+        cfg = json.loads(CONFIG_PATH.read_text())
+        for k, v in defaults.items():
+            if not cfg.get(k):
+                cfg[k] = v
+        return cfg
+    return defaults
 
 def save_config(cfg: dict):
     CONFIG_PATH.write_text(json.dumps(cfg, indent=2))
@@ -313,7 +320,8 @@ def setup():
             return redirect(url_for("index"))
 
     return render_template("setup.html", config=cfg, error=error,
-                           has_credentials=CREDENTIALS_PATH.exists())
+                           has_credentials=CREDENTIALS_PATH.exists(),
+                           google_email=get_google_email(TOKEN_PATH))
 
 
 @app.route("/generate", methods=["POST"])
@@ -418,8 +426,15 @@ def open_browser():
     webbrowser.open("http://localhost:5001")
 
 if __name__ == "__main__":
+    import socket
     log = logging.getLogger("werkzeug")
     log.setLevel(logging.ERROR)
+
+    # Check if port 5001 is already in use
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex(("127.0.0.1", 5001)) == 0:
+            print("Route Planner is already running. Open your web browser and type localhost:5001")
+            sys.exit(0)
 
     threading.Thread(target=open_browser, daemon=True).start()
     print("✓  Route Planner running at http://localhost:5001")

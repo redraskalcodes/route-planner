@@ -41,6 +41,21 @@ def get_calendar_service(credentials_path: Path, token_path: Path):
     return build("calendar", "v3", credentials=creds)
 
 
+def get_google_email(token_path: Path) -> str | None:
+    if not token_path.exists():
+        return None
+    try:
+        with open(token_path, "rb") as f:
+            creds = pickle.load(f)
+        if creds and creds.valid:
+            service = build("oauth2", "v2", credentials=creds)
+            info = service.userinfo().get().execute()
+            return info.get("email")
+    except Exception:
+        pass
+    return None
+
+
 def fetch_jobs(target_date: date, service, job_keyword: str, delivery_keyword: str) -> list[dict]:
     """
     Reads the day's calendar events and returns a list of job dicts.
