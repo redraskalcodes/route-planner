@@ -24,9 +24,38 @@ jobs:
       - name: Build Mac app
         run: pyinstaller route_planner.spec
 
-      - name: Zip app bundle
+      - name: Import signing certificate
+        env:
+          CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$CERTIFICATE_P12" | base64 --decode > certificate.p12
+          security create-keychain -p "build123" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "build123" build.keychain
+          security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build123" build.keychain
+
+      - name: Sign app
+        run: |
+          codesign --deep --force --verify --verbose \
+            --sign "Developer ID Application: Yee Ling Ang (T7P783UZ9J)" \
+            --options runtime \
+            "dist/Route Planner.app"
+
+      - name: Notarize app
+        env:
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
           cd dist
+          zip -r "Route Planner Mac.zip" "Route Planner.app"
+          xcrun notarytool submit "Route Planner Mac.zip" \
+            --apple-id "wineponzwannabe@gmail.com" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "T7P783UZ9J" \
+            --wait
+          xcrun stapler staple "Route Planner.app"
+          rm "Route Planner Mac.zip"
           zip -r "Route Planner Mac.zip" "Route Planner.app"
 
       - name: Upload Mac build
