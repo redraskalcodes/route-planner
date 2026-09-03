@@ -42,28 +42,52 @@ jobs:
           APP="dist/Route Planner.app"
           IDENTITY="Developer ID Application: Yee Ling Ang (T7P783UZ9J)"
 
-          # Sign all Mach-O binaries individually first (catches dylibs, .so files, bare executables like Python)
-          find "$APP" -type f | while read f; do
+          # Entitlements needed for embedded Python with hardened runtime
+          cat > /tmp/entitlements.plist << 'ENTEOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>com.apple.security.cs.allow-jit</key>
+            <true/>
+            <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+            <true/>
+            <key>com.apple.security.cs.disable-library-validation</key>
+            <true/>
+          </dict>
+          </plist>
+          ENTEOF
+
+          # Step 1: Sign all Mach-O binaries NOT inside .framework bundles and NOT the main executable
+          # (main executable is handled by the app bundle signing in step 3)
+          find "$APP" -type f \
+            | grep -v "\.framework/" \
+            | grep -v "Contents/MacOS/" \
+            | while read f; do
             if file "$f" | grep -qE "Mach-O"; then
-              codesign --force --verify --verbose \
-                --sign "$IDENTITY" \
+              codesign --force --sign "$IDENTITY" \
                 --options runtime \
+                --timestamp \
+                --entitlements /tmp/entitlements.plist \
                 "$f"
             fi
           done
 
-          # Sign nested frameworks
-          find "$APP" -name "*.framework" -type d | while read f; do
-            codesign --force --verify --verbose \
-              --sign "$IDENTITY" \
+          # Step 2: Sign nested frameworks (deepest first so outer frameworks see signed inner content)
+          find "$APP" -name "*.framework" -type d | sort -r | while read f; do
+            codesign --force --sign "$IDENTITY" \
               --options runtime \
+              --timestamp \
+              --entitlements /tmp/entitlements.plist \
               "$f"
           done
 
-          # Sign the main app bundle last
+          # Step 3: Sign the main app bundle last (this correctly signs Contents/MacOS/Route Planner)
           codesign --force --verify --verbose \
             --sign "$IDENTITY" \
             --options runtime \
+            --timestamp \
+            --entitlements /tmp/entitlements.plist \
             "$APP"
 
       - name: Notarize app
