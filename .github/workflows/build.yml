@@ -42,16 +42,7 @@ jobs:
           APP="dist/Route Planner.app"
           IDENTITY="Developer ID Application: Yee Ling Ang (T7P783UZ9J)"
 
-          python3 -c "
-import plistlib
-plist = {
-    'com.apple.security.cs.allow-jit': True,
-    'com.apple.security.cs.allow-unsigned-executable-memory': True,
-    'com.apple.security.cs.disable-library-validation': True,
-}
-with open('/tmp/entitlements.plist', 'wb') as f:
-    plistlib.dump(plist, f)
-"
+          python3 -c "import plistlib; plist={'com.apple.security.cs.allow-jit':True,'com.apple.security.cs.allow-unsigned-executable-memory':True,'com.apple.security.cs.disable-library-validation':True}; open('/tmp/entitlements.plist','wb').write(plistlib.dumps(plist))"
           plutil -lint /tmp/entitlements.plist && echo "Entitlements plist OK"
 
           # Break hardlinks so signing one inode does not affect other paths.
