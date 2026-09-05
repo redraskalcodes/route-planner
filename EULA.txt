@@ -1,57 +1,83 @@
-END USER LICENSE AGREEMENT (EULA)
-Route Planner — by Yee Ang
-Last updated: July 2026
+END USER LICENCE AGREEMENT (EULA)
+Route Planner — by AutomateRight
+Last updated: September 2026
 
-PLEASE READ THIS AGREEMENT CAREFULLY BEFORE USING THIS SOFTWARE.
-BY CLICKING "I ACCEPT" OR BY USING THE SOFTWARE, YOU AGREE TO BE BOUND
-BY THE TERMS OF THIS AGREEMENT. IF YOU DO NOT AGREE, DO NOT USE THE SOFTWARE.
+Please read this agreement carefully before using this software. By clicking "I Accept" or by using the software, you agree to be bound by the terms of this agreement. If you do not agree, do not use the software.
 
 ─────────────────────────────────────────────────────────────────────────────
 
-1. GRANT OF LICENSE
-   The developer ("Licensor") grants you ("User") a personal, non-exclusive,
-   non-transferable, limited licence to install and use Route Planner solely
-   for your own internal business operations.
+1. THE SERVICE
 
-2. RESTRICTIONS
-   You may NOT:
-   a) Copy, distribute, share, sublicense, sell, rent, or transfer the
-      software or any copy of it to any third party.
-   b) Reverse engineer, decompile, disassemble, or attempt to derive the
-      source code of the software.
-   c) Modify, adapt, or create derivative works based on the software.
-   d) Use the software to build a competing product or service.
-   e) Remove or alter any proprietary notices, labels, or marks on the software.
+Route Planner is a desktop application that reads your Google Calendar events and uses the Google Maps Distance Matrix API to generate an optimised route plan for your delivery and pickup jobs. Route plans are generated on your computer and saved to your chosen output folder. AutomateRight does not store your route data on its servers.
 
-3. OWNERSHIP
-   The software is licensed, not sold. The Licensor retains all intellectual
-   property rights in and to the software, including all copies made by you.
+2. LICENCE AND SUBSCRIPTION
 
-4. BETA / FREE COPIES
-   This copy has been provided at no charge for evaluation purposes. The
-   Licensor may, at any time, require a paid licence for continued use. Prior
-   notice will be given before any free licence period ends.
+The software is licensed, not sold. AutomateRight ("Licensor") grants you ("User") a personal, non-exclusive, non-transferable licence to install and use Route Planner solely for your own internal business operations, subject to these terms.
 
-5. NO WARRANTY
-   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED. THE LICENSOR DOES NOT WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE
-   OR THAT ROUTES GENERATED WILL BE ACCURATE OR OPTIMAL. YOU USE THE SOFTWARE
-   AT YOUR OWN RISK.
+  Free trial:        30 days from the date of first installation
+  Paid subscription: SGD $24 per year, billed annually
+  Licence key:       One key may be used across multiple devices belonging to the same subscriber
+  Renewal:           Subscriptions must be renewed manually. The app will notify you 14 days before expiry.
+
+3. ACCEPTABLE USE
+
+You must not:
+  a) Share, resell, sublicence, or transfer your licence key to any third party
+  b) Reverse-engineer, decompile, disassemble, or attempt to extract the source code
+  c) Modify, adapt, or create derivative works based on the software
+  d) Use the software to build a competing product or service
+  e) Attempt to circumvent the licence validation or trial period mechanisms
+  f) Use the software in any way that violates applicable laws or regulations
+  g) Remove or alter any proprietary notices, labels, or marks on the software
+
+4. THIRD-PARTY SERVICES
+
+Route Planner relies on Google Calendar API and Google Maps Distance Matrix API. Your use of these services is subject to Google's own Terms of Service. AutomateRight is not responsible for any changes to, interruptions in, or discontinuation of these Google services. You are responsible for connecting your own Google Calendar account to the application.
+
+5. DISCLAIMER OF WARRANTIES
+
+The software is provided "as is" and "as available" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement.
+
+AutomateRight does not warrant that:
+  - The routes generated are the shortest or most efficient possible
+  - The software will be uninterrupted, error-free, or free of defects
+  - Drive time and distance estimates will be accurate under all traffic conditions
+
+Route plans are provided as a planning aid only. You remain responsible for your own driving decisions and for meeting your customers' time commitments.
 
 6. LIMITATION OF LIABILITY
-   TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR SHALL NOT BE LIABLE
-   FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING
-   FROM USE OF THE SOFTWARE, INCLUDING BUT NOT LIMITED TO LOSS OF REVENUE,
-   DATA, OR BUSINESS OPPORTUNITY.
 
-7. TERMINATION
-   This licence is effective until terminated. It terminates automatically
-   if you breach any term of this agreement. Upon termination you must delete
-   all copies of the software in your possession.
+To the maximum extent permitted by applicable law, AutomateRight's total liability for any claim arising out of or relating to these terms or your use of Route Planner shall not exceed the pro-rated value of your remaining subscription at the time the claim arises:
 
-8. GOVERNING LAW
-   This agreement is governed by the laws of Singapore.
+  Maximum liability = SGD $24 × (months remaining ÷ 12)
+
+For users on a free trial, the maximum liability is SGD $0.
+
+In no event shall AutomateRight be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, loss of data, loss of goodwill, or business interruption.
+
+7. INDEMNIFICATION
+
+You agree to indemnify and hold harmless AutomateRight and its officers, employees, and agents from any claims, damages, losses, or expenses (including legal fees) arising from your use of Route Planner, your violation of these terms, or your violation of any third-party rights.
+
+8. TERMINATION
+
+AutomateRight may suspend or terminate your access to Route Planner if you breach these terms. Upon termination, your licence ceases immediately and you must delete all copies of the software in your possession. Subscription fees are non-refundable except where required by applicable law.
+
+9. CHANGES TO THESE TERMS
+
+We may update these terms from time to time. If we make material changes, we will update the effective date. Continued use of Route Planner after updated terms are posted constitutes your acceptance of the changes. The current version is always available at:
+https://automateright.sg/terms_of_service/
+
+10. PRIVACY
+
+Your use of Route Planner is also governed by our Privacy Policy, which describes how we handle your information. Please review it at:
+https://automateright.sg/privacypolicy/
+
+11. GOVERNING LAW
+
+These terms are governed by the laws of Singapore. Any disputes arising from or relating to these terms shall be subject to the exclusive jurisdiction of the courts of Singapore.
 
 ─────────────────────────────────────────────────────────────────────────────
 
 For questions, contact: admin@automateright.sg
+Website: https://automateright.sg
