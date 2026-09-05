@@ -305,7 +305,6 @@ def setup():
 
         new_cfg = {
             "start_address":    request.form.get("start_address", "").strip(),
-            "maps_api_key":     request.form.get("maps_api_key", "").strip(),
             "job_keyword":      request.form.get("job_keyword", "").strip(),
             "delivery_keyword": request.form.get("delivery_keyword", "").strip(),
             "output_dir":       request.form.get("output_dir", "").strip(),
@@ -351,7 +350,7 @@ def generate():
                          f'Make sure events contain "{cfg["job_keyword"]}" in their title and have a Location set.'
             }), 404
 
-        gmaps = googlemaps.Client(key=cfg["maps_api_key"])
+        gmaps = googlemaps.Client(key="AIzaSyA-XWX6cCzjAny3EkwVF6BGlqys_FF_Fss")
         service_time_min = int(cfg.get("service_time_min", 15))
         ordered = optimise_route(gmaps, jobs, cfg["start_address"], service_time_min)
 

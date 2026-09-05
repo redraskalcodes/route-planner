@@ -269,41 +269,10 @@
             </div>
         </div>
 
-        <!-- Section 3: Google Maps -->
-        <div class="card">
-            <div class="section-title">3 · Google Maps API key</div>
-
-            <div class="info-box">
-                The app uses Google Maps to calculate real driving times between stops.<br><br>
-                <strong>How to get a free API key:</strong><br>
-                1. In Google Cloud Console → <strong>APIs &amp; Services → Library</strong><br>
-                2. Enable <strong>Distance Matrix API</strong><br>
-                3. Go to <strong>Credentials → Create API key</strong><br>
-                4. Copy the key and paste it below<br><br>
-                Google gives $200 free credit/month — more than enough for daily route generation.
-            </div>
-
-            <div class="field">
-                <label for="maps_api_key">API key</label>
-                <div class="api-key-row">
-                    <input type="password" id="maps_api_key" name="maps_api_key"
-                           placeholder="AIza..."
-                           value="{{ config.get('maps_api_key', '') }}">
-                    <button type="button" class="toggle-btn" onclick="toggleKey()">👁</button>
-                </div>
-                <div class="hint">Your API key is stored only on your device and never sent anywhere except Google Maps.</div>
-            </div>
-        </div>
-
         <button type="submit" class="btn-save">Save &amp; continue →</button>
     </form>
 </div>
 
 <script>
-function toggleKey() {
-    const f = document.getElementById('maps_api_key');
-    f.type = f.type === 'password' ? 'text' : 'password';
-}
-</script>
 </body>
 </html>
