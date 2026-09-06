@@ -51,9 +51,9 @@ def get_google_email(token_path: Path) -> str | None:
             from google.auth.transport.requests import Request
             creds.refresh(Request())
         if creds and creds.valid:
-            service = build("oauth2", "v2", credentials=creds)
-            info = service.userinfo().get().execute()
-            return info.get("email")
+            service = build("calendar", "v3", credentials=creds)
+            info = service.calendarList().get(calendarId="primary").execute()
+            return info.get("id")
     except Exception:
         pass
     return None
