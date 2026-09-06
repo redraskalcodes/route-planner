@@ -47,6 +47,9 @@ def get_google_email(token_path: Path) -> str | None:
     try:
         with open(token_path, "rb") as f:
             creds = pickle.load(f)
+        if creds and not creds.valid and creds.expired and creds.refresh_token:
+            from google.auth.transport.requests import Request
+            creds.refresh(Request())
         if creds and creds.valid:
             service = build("oauth2", "v2", credentials=creds)
             info = service.userinfo().get().execute()
