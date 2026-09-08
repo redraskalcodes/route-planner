@@ -58,7 +58,7 @@ WEBHOOK_SERVER_URL    = "https://web-production-de6df.up.railway.app"
 RESOURCE_DIR     = get_resource_dir()
 EULA_TEXT_PATH   = RESOURCE_DIR / "EULA.txt"
 
-TRIAL_DAYS = 30
+TRIAL_DAYS = 7
 FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfaekAeWkPcVfDnAmdGRRvO30dJzQF6Tr4Ex5P5ycpmC7XhCw/viewform"
 
 # Auto-copy bundled credentials.json to user data dir on first run

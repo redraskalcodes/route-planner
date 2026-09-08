@@ -14,7 +14,7 @@ Route Planner is a desktop application that reads your Google Calendar events an
 
 The software is licensed, not sold. AutomateRight ("Licensor") grants you ("User") a personal, non-exclusive, non-transferable licence to install and use Route Planner solely for your own internal business operations, subject to these terms.
 
-  Free trial:        30 days from the date of first installation
+  Free trial:        7 days from the date of first installation
   Paid subscription: SGD $24 per year, billed annually
   Licence key:       One key may be used across multiple devices belonging to the same subscriber
   Renewal:           Subscriptions must be renewed manually. The app will notify you 14 days before expiry.
