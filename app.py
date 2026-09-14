@@ -418,6 +418,49 @@ def download(filename):
     return send_file(str(file_path), as_attachment=True, download_name=filename)
 
 
+# ── Menu bar / system tray ───────────────────────────────────────────────────
+
+def create_tray_icon():
+    """Menu bar icon on Mac (rumps), system tray on Windows (pystray)."""
+    if sys.platform == "darwin":
+        import rumps
+
+        class RoutePlannerApp(rumps.App):
+            def __init__(self):
+                super().__init__("Route Planner", title="RP ▶")
+
+            @rumps.clicked("Open Route Planner")
+            def open_browser(self, _):
+                webbrowser.open("http://localhost:5001")
+
+        rp = RoutePlannerApp()
+        rp.quit_button = rumps.MenuItem("Quit", callback=lambda _: os._exit(0))
+        rp.run()
+
+    else:
+        from PIL import Image, ImageDraw
+        import pystray
+
+        img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.ellipse([4, 4, 60, 60], fill=(13, 148, 136, 255))
+        draw.text((20, 16), "R", fill=(255, 255, 255, 255))
+
+        def on_open(icon, item):
+            webbrowser.open("http://localhost:5001")
+
+        def on_quit(icon, item):
+            icon.stop()
+            os._exit(0)
+
+        menu = pystray.Menu(
+            pystray.MenuItem("Open Route Planner", on_open, default=True),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Quit", on_quit),
+        )
+        pystray.Icon("Route Planner", img, "Route Planner", menu).run()
+
+
 # ── Launch ────────────────────────────────────────────────────────────────────
 
 def open_browser():
@@ -429,14 +472,17 @@ if __name__ == "__main__":
     log = logging.getLogger("werkzeug")
     log.setLevel(logging.ERROR)
 
-    # Check if port 5001 is already in use
+    # If server is already running, just re-open the browser and exit
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         if s.connect_ex(("127.0.0.1", 5001)) == 0:
-            print("Route Planner is already running. Open your web browser and type localhost:5001")
+            webbrowser.open("http://localhost:5001")
             sys.exit(0)
 
     threading.Thread(target=open_browser, daemon=True).start()
     print("✓  Route Planner running at http://localhost:5001")
     print(f"   Config stored in: {DATA_DIR}")
     print("   Press Ctrl+C to stop.\n")
-    app.run(host="127.0.0.1", port=5001, debug=False)
+
+    # Run Flask on a background thread, tray icon owns the main thread
+    threading.Thread(target=lambda: app.run(host="127.0.0.1", port=5001, debug=False), daemon=True).start()
+    create_tray_icon()
