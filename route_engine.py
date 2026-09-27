@@ -376,6 +376,28 @@ def optimise_route(gmaps, jobs: list[dict], start_address: str, service_time_min
     start_time = min(j["slot_start"] for j in jobs)
     best_order, _ = multi_start_optimise(time_matrix, jobs, start_time, service_time_min, dist_matrix)
 
+    # Group stops at the same address consecutively so the driver doesn't
+    # revisit the same block after going elsewhere.
+    def _group_same_address(order):
+        seen = {}
+        for pos, idx in enumerate(order):
+            key = jobs[idx]["address"].strip().lower()
+            seen.setdefault(key, []).append(pos)
+        result, consumed = [], set()
+        for pos, idx in enumerate(order):
+            if pos in consumed:
+                continue
+            result.append(idx)
+            consumed.add(pos)
+            key = jobs[idx]["address"].strip().lower()
+            for other_pos in seen[key]:
+                if other_pos != pos and other_pos not in consumed:
+                    result.append(order[other_pos])
+                    consumed.add(other_pos)
+        return result
+
+    best_order = _group_same_address(best_order)
+
     first_idx = best_order[0]
     travel_to_first = time_matrix[0][first_idx + 1]
     departure_time = jobs[first_idx]["slot_start"] - timedelta(minutes=travel_to_first)
