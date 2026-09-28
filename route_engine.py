@@ -238,12 +238,11 @@ def build_matrix(gmaps, locations: list[str], region: str = "", anchor: tuple = 
 # ── Route scoring ────────────────────────────────────────────────────────────
 
 def route_feasible_and_cost(order, time_matrix, jobs, start_time, service_time_min=15, dist_matrix=None):
-    """Cost = total distance driven (km) + wait-time penalty (at 0.5 km/min = ~30 km/h).
+    """Cost = total distance driven (km) + heavy penalty for missing time windows.
     ETAs are computed from time_matrix; distance from dist_matrix (falls back to time_matrix)."""
     current = 0
     current_time = start_time
     total_dist = 0.0
-    total_wait = 0.0
     penalty = 0
     feasible = True
     etas = []
@@ -258,8 +257,6 @@ def route_feasible_and_cost(order, time_matrix, jobs, start_time, service_time_m
         if arrival > job["slot_end"]:
             feasible = False
             penalty += int((arrival - job["slot_end"]).total_seconds() / 60) * LATE_PENALTY_PER_MIN
-        wait = max(0.0, (job["slot_start"] - arrival).total_seconds() / 60)
-        total_wait += wait
         visit_time = max(arrival, job["slot_start"])
         etas.append((visit_time, travel_time, travel_dist))
         total_dist += travel_dist
@@ -268,7 +265,7 @@ def route_feasible_and_cost(order, time_matrix, jobs, start_time, service_time_m
 
     total_dist += dm[current][0]
     # Wait penalty: 0.5 km per idle minute (equivalent to 30 km/h average speed)
-    return feasible, total_dist + total_wait * 0.5 + penalty, etas
+    return feasible, total_dist + penalty, etas
 
 
 # ── Route construction ───────────────────────────────────────────────────────
@@ -313,7 +310,7 @@ def nearest_neighbour_init(time_matrix, jobs, start_time, forced_first=None, ser
     return order
 
 
-def local_search_improve(order, time_matrix, jobs, start_time, max_iters=300, service_time_min=15, dist_matrix=None):
+def local_search_improve(order, time_matrix, jobs, start_time, max_iters=1000, service_time_min=15, dist_matrix=None):
     _, best_score, _ = route_feasible_and_cost(order, time_matrix, jobs, start_time, service_time_min, dist_matrix)
     improved = True
     iters = 0
@@ -336,6 +333,19 @@ def local_search_improve(order, time_matrix, jobs, start_time, max_iters=300, se
             rest = order[:i] + order[i + 1:]
             for pos in range(len(rest) + 1):
                 cand = rest[:pos] + [stop] + rest[pos:]
+                if cand == order:
+                    continue
+                _, score, _ = route_feasible_and_cost(cand, time_matrix, jobs, start_time, service_time_min, dist_matrix)
+                if score < best_score:
+                    order, best_score = cand, score
+                    improved = True
+
+        # Or-opt-2: relocate pairs of consecutive stops
+        for i in range(n - 1):
+            pair = order[i:i + 2]
+            rest = order[:i] + order[i + 2:]
+            for pos in range(len(rest) + 1):
+                cand = rest[:pos] + pair + rest[pos:]
                 if cand == order:
                     continue
                 _, score, _ = route_feasible_and_cost(cand, time_matrix, jobs, start_time, service_time_min, dist_matrix)
